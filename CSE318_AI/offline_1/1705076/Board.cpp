@@ -1,4 +1,6 @@
 #include <algorithm>
+#include <numeric>
+#include <iostream>
 
 #include "Board.hpp"
 
@@ -8,6 +10,33 @@ namespace AI {
         grid.resize(size*size); 
     } 
 
+
+    Board::Board(int _size)
+        : size(_size), grid(size*size) {
+        std::iota(grid.begin(), grid.end(), 1); 
+    }
+    
+
+    Board applyMove(char move) const{
+        Board newBoard(*this);
+        int index = std::find(newBoard.grid.begin(), newBoard.grid.end(), 0);
+        switch(move){
+            case 'L':
+                break;
+            case 'R':
+                break;
+            case 'U':
+                break;
+            case 'D':
+                break;
+            default:
+                std::cerr<<"ERROR"<<std::endl;
+                break;
+        }
+
+        return newBoard;
+    }
+    
 
     std::ostream& operator<<(std::ostream& os, Board const& board){
         int k = 0; 
@@ -28,6 +57,25 @@ namespace AI {
     }
 
 
+    bool operator==(Board const& board1, Board const& board2){
+        return board1.grid == board2.grid;
+    }
+    
+
+    bool operator!=(Board const& board1, Board const& board2){
+        return !(board1 == board2);
+    }
+
+
+    std::size_t Board::getHash() const {
+        std::size_t h = 0;
+        for(int x : grid){
+            h = ((h<<5)+h) + x;
+        }
+        return h;
+    }
+
+
     bool Board::isSolvable() const {
         if(size % 2 == 0){
             return isSolvableEven();
@@ -43,6 +91,15 @@ namespace AI {
         int zeroRow = (it - grid.begin())/ size;
 
         return zeroRow % 2 != getInversionCount() % 2;
+    }
+    
+
+    bool Board::isSolved() const {
+        for(int i = 0; i+1<grid.size(); i++){
+            if(i+1 != grid[i])
+                return false;
+        }
+        return grid.back() == 0;
     }
     
 
