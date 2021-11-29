@@ -1,5 +1,7 @@
 #include <algorithm>
 #include <queue>
+#include <utility>
+#include <vector>
 
 #include "Astar.hpp"
 
@@ -9,7 +11,7 @@ namespace AI {
     } 
 
       
-    std::pair<std::string, int> Astar::solve(Board board) const {
+    std::pair<std::string, int> Astar::solve(Board const& board) const {
         auto explored = search(board);
 
         std::string moves;
@@ -32,7 +34,7 @@ namespace AI {
                     target = target.applyMove('U');
                     break;
                 default:
-                    std::cerr<<"ERROR"<<std::endl;
+                    std::cerr<<"ERROR: recosntruction failed"<<std::endl;
                     break;
             }
         }
@@ -47,33 +49,57 @@ namespace AI {
     }
 
 
+    bool operator>(Astar::Node const& node1, Astar::Node const& node2){
+        return node2 < node1;
+    }
+    
 
     std::unordered_map<Board, char> Astar::search(Board const& board) const {
         std::unordered_map<Board, char> table;
-        std::priority_queue<Node> pq;
+        std::unordered_map<Board, int> best;
+        std::priority_queue<Node, std::vector<Node>, std::greater<Node>> pq;
         pq.push({board, 0, 0, 0});
+        best[board] = 0;
+        table[board] = 0;
         
         while(!pq.empty()){
             auto node = pq.top();
             pq.pop();
 
-            if(table.count(node.board) > 0)
-                continue;
-
-            table[node.board] = node.lastMove;
-
             if(node.board.isSolved())
                 break;
-            
+                
+            if(node.g > best[node.board])
+                continue;
+                        
             for(char move: {'L', 'R', 'U', 'D'}){
-                auto newBoard = node.board.applyMove(move);
-                if(table.count(newBoard) > 0)
+                if(!node.board.isMoveValid(move)){
                     continue;
-
-                pq.push({newBoard, node.g+1, 0, move});
+                }
+                auto newBoard = node.board.applyMove(move);
+                int g = node.g+1;
+                if(best.count(newBoard) == 0 || g < best[newBoard]){
+                    table[newBoard] = move;
+                    best[newBoard] = g;
+                    int h = getH(newBoard);
+                    pq.push({newBoard, node.g+1, h, move});
+                }                
             }
         }
 
         return table;
+    }
+
+
+    int Astar::getH(Board const& board) const{
+        switch(heuristics){
+            case Heuristics::None:
+                return 0;
+                break;
+            default:
+                std::cout<<"ERROR: unknown heuristics"<<std::endl;
+                break;
+        }
+        return 0;
     }
 }

@@ -1,3 +1,3 @@
 @echo off
 
-g++ *.cpp -o solver.exe
+g++ -std=c++14 -O2 *.cpp -o solver.exe

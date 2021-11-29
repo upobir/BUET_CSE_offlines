@@ -3,6 +3,7 @@
 #include <string>
 
 #include "Board.hpp"
+#include "Astar.hpp"
 
 int main(){
     
@@ -34,6 +35,24 @@ int main(){
 
     if(board.isSolvable()){
         std::cout << "Board is solvable"<<std::endl;
+
+
+        AI::Astar astar(AI::Heuristics::None);
+        auto solution = astar.solve(board);
+        auto moves = solution.first;
+        auto explored = solution.second;
+
+        std::cout<<"Explored node count: "<<explored<<std::endl;
+
+        std::cout<<"Moves: "<<moves<<std::endl;
+
+        std::cout<<board;
+        for(auto move: moves){
+            std::cout<<"-> "<<move<<std::endl;
+            board = board.applyMove(move);
+            std::cout<<board;
+        }
+        
     }
     else{
         std::cout<< "Board is not solvable"<<std::endl;

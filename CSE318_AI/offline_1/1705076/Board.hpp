@@ -21,6 +21,8 @@ namespace AI {
         
         Board applyMove(char move) const;
 
+        bool isMoveValid(char move) const;
+
         friend std::ostream& operator<<(std::ostream& os, Board const& board);
 
         std::size_t getHash() const;
@@ -40,6 +42,8 @@ namespace AI {
         bool isSolvableOdd() const;
 
         int getInversionCount() const;
+
+        std::pair<int, int> getBlankPosition() const;
     };
 }
 

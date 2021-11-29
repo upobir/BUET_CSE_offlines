@@ -1,6 +1,7 @@
 #include <algorithm>
 #include <numeric>
 #include <iostream>
+#include <utility>
 
 #include "Board.hpp"
 
@@ -12,29 +13,72 @@ namespace AI {
 
 
     Board::Board(int _size)
-        : size(_size), grid(size*size) {
+        : size(_size), grid(_size*_size) {
         std::iota(grid.begin(), grid.end(), 1); 
-    }
+        grid.back() = 0;
+   }
     
-
-    Board applyMove(char move) const{
-        Board newBoard(*this);
-        int index = std::find(newBoard.grid.begin(), newBoard.grid.end(), 0);
+    
+    bool Board::isMoveValid(char move) const{
+        auto position = getBlankPosition();
         switch(move){
             case 'L':
+                return position.second < size-1;
                 break;
             case 'R':
+                return position.second > 0;
                 break;
             case 'U':
+                return position.first < size-1;
                 break;
             case 'D':
+                return position.first > 0;
                 break;
             default:
-                std::cerr<<"ERROR"<<std::endl;
+                std::cerr<<"ERROR: illegal move"<<std::endl;
+                return false;
+                break;
+        }
+    }
+
+
+    Board Board::applyMove(char move) const{
+        Board newBoard(*this);
+        int index = std::find(newBoard.grid.begin(), newBoard.grid.end(), 0) - newBoard.grid.begin();
+        switch(move){
+            case 'L':
+                std::swap(newBoard.grid[index], newBoard.grid[index+1]);
+                break;
+            case 'R':
+                std::swap(newBoard.grid[index], newBoard.grid[index-1]);
+                break;
+            case 'U':
+                std::swap(newBoard.grid[index], newBoard.grid[index+size]);
+                break;
+            case 'D':
+                std::swap(newBoard.grid[index], newBoard.grid[index-size]);
+                break;
+            default:
+                std::cerr<<"ERROR: illegal move"<<std::endl;
                 break;
         }
 
         return newBoard;
+    }
+
+
+    std::pair<int, int> Board::getBlankPosition() const{
+        int k = 0;
+        for(int i = 0; i<size; i++){
+            for(int j = 0; j<size; j++){
+                if(grid[k] == 0){
+                    return {i, j};
+                }
+                k++;
+            }
+        }
+        std::cerr<<"ERROR: cannot find gap"<<std::endl;
+        return {-1, -1};
     }
     
 
