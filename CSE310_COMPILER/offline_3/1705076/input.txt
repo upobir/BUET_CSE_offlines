@@ -1,0 +1,19 @@
+int z[10];
+float y;
+
+int helper(int a, int b){
+    return a+b;
+}
+
+int func(int x, int y, int z){
+    int w;
+    w = x+y+z;
+    int s;
+    s = w;
+    return w;
+}
+
+int main(){
+    int z;
+    return 0;
+}

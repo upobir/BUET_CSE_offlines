@@ -85,6 +85,12 @@ namespace AI {
     std::ostream& operator<<(std::ostream& os, Board const& board){
         int k = 0; 
         for(int i = 0; i<board.size; i++){
+            std::cout<<"+--";
+        }
+        std::cout<<"+"<<std::endl;
+
+        for(int i = 0; i<board.size; i++){
+            std::cout<<"|";
             for(int j = 0; j<board.size; j++){
                 if(board.grid[k] == 0){
                     os << "  ";
@@ -92,11 +98,17 @@ namespace AI {
                 else {
                     os << std::setw(2) << std::setfill(' ')<< board.grid[k] ;
                 }
-                os << " ";                 
+                os << "|";                 
                 k++;
             }
             os << std::endl;
+
+            for(int i = 0; i<board.size; i++){
+                std::cout<<"+--";
+            }
+            std::cout<<"+"<<std::endl;
         }
+
         return os;
     }
 

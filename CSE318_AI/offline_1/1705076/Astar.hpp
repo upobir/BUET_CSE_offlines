@@ -18,7 +18,7 @@ namespace AI {
     public:
         Astar(Heuristics _heuristics);
 
-        std::pair<std::string, int> solve(Board const& board) const;
+        std::tuple<std::string, int, int> solve(Board const& board) const;
         
     private: 
         Heuristics heuristics;
@@ -34,8 +34,14 @@ namespace AI {
         
         friend bool operator>(Node const& node1, Node const& node2); 
 
-        std::unordered_map<Board, char> search(Board const& board) const;
+        std::tuple<std::unordered_map<Board, char>, int> search(Board const& board) const;
 
         int getH(Board const& board) const;
+
+        int getHammingDistance(Board const& board) const;
+        
+        int getManhattanDistance(Board const& board) const;
+
+        int getLinearConflict(Board const& board) const;
     };
 }

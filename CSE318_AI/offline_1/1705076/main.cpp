@@ -33,26 +33,67 @@ int main(){
     std::cout<< "Board: "<<std::endl;
     std::cout<< board<< std::endl;
 
+    //TODO temporary
+    //AI::Astar temp(AI::Heuristics::None);
+    //std::cout<<"hamming: "<<temp.getHammingDistance(board)<<std::endl;
+    //std::cout<<"manhattan: "<<temp.getManhattanDistance(board)<<std::endl; 
+    //std::cout<<"conflicts: "<<temp.getLinearConflict(board)<<std::endl;
+
     if(board.isSolvable()){
         std::cout << "Board is solvable"<<std::endl;
 
+        AI::Heuristics heuristics[] = {
+            AI::Heuristics::None,
+            AI::Heuristics::HammingDistance,
+            AI::Heuristics::ManhattanDistance,
+            AI::Heuristics::LinearConflict,
+        };
 
-        AI::Astar astar(AI::Heuristics::None);
-        auto solution = astar.solve(board);
-        auto moves = solution.first;
-        auto explored = solution.second;
+        std::string names[] = {
+            "no",
+            "hamming distance",
+            "manhattan distance",
+            "linear conflict",
+        };
+ 
+        for(int i = 0; i<4; i++){
+            std::string temp;
+            std::cout<<"Run A* with "<<names[i]<<" heuristic (y/n)?: ";
+            std::cin>>temp;
+            if(temp[0] != 'y')
+                continue;
 
-        std::cout<<"Explored node count: "<<explored<<std::endl;
+            AI::Astar astar(heuristics[i]);
+            auto solution = astar.solve(board);
+            auto moves = std::get<0>(solution);
+            auto explored = std::get<1>(solution);
+            auto expanded = std::get<2>(solution);
 
-        std::cout<<"Moves: "<<moves<<std::endl;
+            std::cout<<"Explored node count: "<<explored<<std::endl;
+            std::cout<<"Expanded node count: "<<expanded<<std::endl;
+            std::cout<<std::endl;
 
-        std::cout<<board;
-        for(auto move: moves){
-            std::cout<<"-> "<<move<<std::endl;
-            board = board.applyMove(move);
-            std::cout<<board;
-        }
-        
+            std::cout<<"Move count: "<<moves.size()<<std::endl;
+            std::cout<<"Moves: "<<moves<<std::endl;
+            std::cout<<std::endl;
+            
+            std::cout<<"show solution simulation (y/n)?: ";
+            std::cin>>temp;
+            if(temp[0] != 'y')
+                continue;
+
+            AI::Board current = board;
+
+            std::cout<<current;
+            for(auto move: moves){
+                std::cout<<std::endl;
+                std::cout<<"-> "<<move<<std::endl;
+                std::cout<<std::endl;
+
+                current = current.applyMove(move);
+                std::cout<<current;
+            }
+       }
     }
     else{
         std::cout<< "Board is not solvable"<<std::endl;
