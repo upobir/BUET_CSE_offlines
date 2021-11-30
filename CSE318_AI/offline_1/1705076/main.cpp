@@ -1,6 +1,7 @@
 #include <iostream>
 #include <vector>
 #include <string>
+#include <chrono>
 
 #include "Board.hpp"
 #include "Astar.hpp"
@@ -63,6 +64,8 @@ int main(){
             if(temp[0] != 'y')
                 continue;
 
+            auto t1 = std::chrono::high_resolution_clock::now();
+
             AI::Astar astar(heuristics[i]);
             auto solution = astar.solve(board);
             auto moves = std::get<0>(solution);
@@ -76,6 +79,10 @@ int main(){
             std::cout<<"Move count: "<<moves.size()<<std::endl;
             std::cout<<"Moves: "<<moves<<std::endl;
             std::cout<<std::endl;
+
+            auto t2 = std::chrono::high_resolution_clock::now();
+
+            std::cout<<"Time taken: "<<std::chrono::duration_cast<std::chrono::milliseconds>(t2-t1).count()<<" milliseconds"<<std::endl;
             
             std::cout<<"show solution simulation (y/n)?: ";
             std::cin>>temp;
