@@ -4,6 +4,9 @@
 #include <iostream>
 #include <iomanip>
 
+#include "Logger.hpp"
+#include "Heuristics.hpp"
+
 namespace AI {
     MancalaUI::MancalaUI(MancalaAgent& _firstPlayer, MancalaAgent& _secondPlayer) 
         : firstPlayer(_firstPlayer), secondPlayer(_secondPlayer), mancala() {
@@ -18,29 +21,29 @@ namespace AI {
         printBoard();
 
         while(!mancala.isEnded()){
+
             std::cout<<std::endl;
-            std::cout<<"Turn of "<<(mancala.getCurrentPlayer() == 1? "first" : "second")<<" player: "<<std::endl;
+            std::cout<<std::endl;
+            std::cout<<"Turn of "<<(mancala.getCurrentPlayer() == 1? "FIRST" : "SECOND")<<" player: "<<std::endl;
 
             int move = (mancala.getCurrentPlayer() == 1? firstPlayer.getMove(mancala) : secondPlayer.getMove(mancala));
-            auto result = mancala.applyMove(move);
+            std::cout<<"Player "<<mancala.getCurrentPlayer()<<" applied move on column "<<move<<std::endl;
 
+            auto result = mancala.applyMove(move);
+            printBoard();
             switch(std::get<0>(result)){
                 case Mancala::Result::NORMAL:
                     std::cout<<"Last stone placed at row "<<std::get<1>(result)<<" column "<<std::get<2>(result)<<std::endl;
                     break;
 
                 case Mancala::Result::BONUS:
-                    std::cout<<"Last stone placed at bowl, bonus move awarded"<<std::endl;
+                    std::cout<<"Last stone placed at bowl, BONUS move awarded"<<std::endl;
                     break;
 
                 case Mancala::Result::STEAL:
-                    std::cout<<"Last stone placed at row "<<std::get<1>(result)<<" column "<<std::get<2>(result)<< " stealing from that column"<<std::endl;
+                    std::cout<<"Last stone placed at row "<<std::get<1>(result)<<" column "<<std::get<2>(result)<< " STEALing from that column"<<std::endl;
                     break;
             }
-
-            std::cout<<std::endl;
-
-            printBoard();
         }
 
         std::cout<<std::endl;

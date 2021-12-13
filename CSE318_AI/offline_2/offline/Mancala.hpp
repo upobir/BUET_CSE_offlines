@@ -15,7 +15,8 @@ namespace AI {
         bool isEnded() const;
         int getCurrentPlayer() const;
         int getWinner() const;
-        void setWinConfig() ;
+        int getScore() const;
+        void setWinConfig();
 
         int getBowlStoneCount(int player) const;
         int getPocketStoneCount(int row, int column) const;
@@ -26,6 +27,7 @@ namespace AI {
             STEAL,
         };
 
+        bool isValidMove(int column) const;
         std::tuple<Result, int, int> applyMove(int column);
     };
 }

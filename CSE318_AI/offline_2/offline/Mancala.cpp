@@ -4,6 +4,8 @@
 #include <algorithm>
 #include <numeric>
 
+#include "Logger.hpp"
+
 namespace AI {
     Mancala::Mancala() {
         bowl[0] = bowl[1] = 0;
@@ -56,19 +58,25 @@ namespace AI {
 
 
     int Mancala::getWinner() const {
+        int diff = getScore();
 
-        int first = std::accumulate(pockets[1], pockets[1]+6, 0) + bowl[0];
-        int second = std::accumulate(pockets[0], pockets[0]+6, 0) + bowl[1];
-
-        if(first == second){
+        if(diff == 0){
             return 0;
         }
-        else if(first > second){
+        else if(diff > 0){
             return 1;
         }
         else{
             return 2;
         }
+    }
+
+
+    int Mancala::getScore() const {
+        int first = std::accumulate(pockets[1], pockets[1]+6, 0) + bowl[0];
+        int second = std::accumulate(pockets[0], pockets[0]+6, 0) + bowl[1];
+
+        return first - second;
     }
 
 
@@ -79,6 +87,13 @@ namespace AI {
 
     int Mancala::getPocketStoneCount(int row, int column) const {
         return pockets[row-1][column-1];
+    }
+
+
+    bool Mancala::isValidMove(int column) const {
+        column--;
+        int row = (currentPlayer == 1? 1 : 0);
+        return pockets[row][column] > 0;
     }
 
 
@@ -113,7 +128,7 @@ namespace AI {
         if(column < 0 || column > 5){
             return std::make_tuple(Result::BONUS, -1, -1);
         }
-        else if(row == (currentPlayer == 1? 1 : 0) && pockets[row][column] == 1){
+        else if(row == (currentPlayer == 1? 1 : 0) && pockets[row][column] == 1 && pockets[row^1][column] > 0){
             bowl[currentPlayer-1] += pockets[row][column] + pockets[row^1][column];
             pockets[row][column] = 0;
             pockets[row^1][column] = 0;

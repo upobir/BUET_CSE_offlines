@@ -8,9 +8,12 @@ namespace AI {
     }
 
     int UserAgent::getMove(Mancala const& mancala) {
-        std::cout<<"Enter column number for move: "; // TODO loop to get proper move?
         int col;
-        std::cin>>col;
+        do{
+            std::cout<<">> Enter column number for move: ";
+            std::cin>>col;
+        } while (1 > col || col > 6 || !mancala.isValidMove(col));
+        
         return col;
     }
 
