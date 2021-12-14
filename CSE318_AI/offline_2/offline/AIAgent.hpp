@@ -11,11 +11,11 @@ namespace AI {
         Heuristics const& heuristics;
         int maxDepth;
 
-        std::pair<int, int> alphaBetaPrune(Mancala const& mancala, int alpha, int beta, int depth) const;
+        std::pair<int, int> alphaBetaPrune(Mancala const& mancala, int alpha, int beta, int depth, int extras) const;
     public:
         AIAgent(Heuristics const& _heuristics, int _maxDepth);
 
-        int getMove(Mancala const& mancala) override;
+        int getMove(Mancala const& mancala) const override;
 
         std::string getName() const override;
     };

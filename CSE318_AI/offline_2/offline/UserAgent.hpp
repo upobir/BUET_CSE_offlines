@@ -8,7 +8,7 @@ namespace AI {
     public:
         UserAgent();
 
-        int getMove(Mancala const& mancala) override;
+        int getMove(Mancala const& mancala) const override;
 
         std::string getName() const override;
     };

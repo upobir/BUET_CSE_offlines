@@ -10,7 +10,7 @@ namespace AI {
     protected:
         MancalaAgent() = default;
     public:
-        virtual int getMove(Mancala const& mancala) = 0;
+        virtual int getMove(Mancala const& mancala) const = 0;
 
         virtual std::string getName() const = 0;
     };

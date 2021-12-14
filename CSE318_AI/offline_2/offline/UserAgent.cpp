@@ -7,7 +7,7 @@ namespace AI {
     UserAgent::UserAgent() {
     }
 
-    int UserAgent::getMove(Mancala const& mancala) {
+    int UserAgent::getMove(Mancala const& mancala) const {
         int col;
         do{
             std::cout<<">> Enter column number for move: ";
