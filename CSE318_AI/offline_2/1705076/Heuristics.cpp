@@ -49,7 +49,17 @@ namespace AI {
 
 
     int Heuristics4::getHeuristics(Mancala const& mancala, int extras) const {
-        return mancala.getBowlStoneCount(1) - 6*4;
+        int score = 0;
+        int w[] = {10, 20, 30, 40, 50, 60};
+        for(int col = 6, i = 0; col >= 1; col--, i++){
+            score += mancala.getPocketStoneCount(2, col) * w[i];
+        }
+
+        for(int col = 1, i = 0; col <= 6; col++, i++){
+            score += mancala.getPocketStoneCount(1, col) * w[i];
+        }
+
+        return score + mancala.getBowlStoneCount(1) - mancala.getBowlStoneCount(2);
     }
 
     std::string Heuristics4::getName() const {
@@ -58,15 +68,49 @@ namespace AI {
 
 
     int Heuristics5::getHeuristics(Mancala const& mancala, int extras) const {
-        assert(!"not implemented");
+        int score = 0;
+        int w[] = {60, 50, 40, 30, 20, 10};
+        for(int col = 6, i = 0; col >= 1; col--, i++){
+            score += mancala.getPocketStoneCount(2, col) * w[i];
+        }
+
+        for(int col = 1, i = 0; col <= 6; col++, i++){
+            score += mancala.getPocketStoneCount(1, col) * w[i];
+        }
+
+        return score + mancala.getBowlStoneCount(1) - mancala.getBowlStoneCount(2);
     }
+
+
     std::string Heuristics5::getName() const {
         return "heuristics 5";
     }
 
 
     int Heuristics6::getHeuristics(Mancala const& mancala, int extras) const {
-        assert(!"not implemented");
+        int score = 0;
+        for(int col = 6, i = 0; col >=1; col--, i++){
+            int x = mancala.getPocketStoneCount(2, col);
+            x -= i;
+            if(x > 0){
+                score += 1;
+                x--;
+                score += x/13;
+            }
+        }
+
+
+        for(int col = 1, i = 0; col <=6; col++, i++){
+            int x = mancala.getPocketStoneCount(2, col);
+            x -= i;
+            if(x > 0){
+                score -= 1;
+                x--;
+                score -= x/13;
+            }
+        }
+
+        return score + mancala.getBowlStoneCount(1) - mancala.getBowlStoneCount(2);
     }
     std::string Heuristics6::getName() const {
         return "heuristics 6";

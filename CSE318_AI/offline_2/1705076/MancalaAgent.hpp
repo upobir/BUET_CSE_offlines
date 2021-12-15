@@ -13,5 +13,7 @@ namespace AI {
         virtual int getMove(Mancala const& mancala) const = 0;
 
         virtual std::string getName() const = 0;
+
+        virtual ~MancalaAgent() = default;
     };
 }

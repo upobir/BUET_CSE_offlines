@@ -18,5 +18,7 @@ namespace AI {
         int getMove(Mancala const& mancala) const override;
 
         std::string getName() const override;
+
+        ~AIAgent() override = default;
     };
 }
