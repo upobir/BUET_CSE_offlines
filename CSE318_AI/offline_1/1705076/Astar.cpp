@@ -15,8 +15,7 @@ namespace AI {
     std::tuple<std::string, int, int> Astar::solve(Board const& board) const {
         auto temp = search(board);
         auto explored = std::get<0>(temp);
-        auto expandedCount = std::get<1>(temp);
-
+        auto expandedCount = std::get<1>(temp); 
         std::string moves;
         Board target(board.size);
 
