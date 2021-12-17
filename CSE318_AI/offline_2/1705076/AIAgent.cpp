@@ -1,10 +1,15 @@
 #include "AIAgent.hpp"
 
 #include <string>
+#include <climits>
+#include <algorithm>
+#include <chrono>
 
 namespace AI {
+
     AIAgent::AIAgent(Heuristics const& _heuristics, int _maxDepth) 
-        : heuristics(_heuristics) , maxDepth(_maxDepth) {
+        : heuristics(_heuristics) , maxDepth(_maxDepth), rng(std::chrono::system_clock::now().time_since_epoch().count()) {
+        rng();
     }
 
     int AIAgent::getMove(Mancala const& mancala) const {
@@ -29,14 +34,25 @@ namespace AI {
         int start = (mancala.getCurrentPlayer() == 1? 6 : 1);
         int dir = (mancala.getCurrentPlayer() == 1? -1 : +1);
         int finish = (mancala.getCurrentPlayer() == 1? 0 : 7);
-        for(int col = start; col != finish; col+=dir){ /// TODO change order
+        for(int col = start; col != finish; col+=dir){
+
+        // int perm[] = {1, 2, 3, 4, 5, 6};
+        // std::shuffle(perm, perm+6, rng);
+        // for(int i = 0; i<6; i++){
+        //     int col = perm[i];
+        
             if(!mancala.isValidMove(col))
                 continue;
 
             Mancala newMancala(mancala);
             newMancala.applyMove(col);
 
-            auto returned = alphaBetaPrune(newMancala, alpha, beta, depth+1, extras + (mancala.getCurrentPlayer() == 1 && newMancala.getCurrentPlayer() == 1));
+            int newExtras = extras;
+            if(mancala.getCurrentPlayer() == newMancala.getCurrentPlayer()){
+                newExtras += (mancala.getCurrentPlayer() == 1? +1 : -1);
+            }
+
+            auto returned = alphaBetaPrune(newMancala, alpha, beta, depth+1, newExtras);
 
             if(mancala.getCurrentPlayer() == 1){
                 if(returned.first > result.first)

@@ -36,7 +36,7 @@ int main(int argc, char** argv){
         for(int i = 0; i<aicount; i++){
             for(int j = 0; j<aicount; j++){
                 AI::AIRounds rounds(agents[i], agents[j]);
-                auto result = rounds.run(1);
+                auto result = rounds.run(50);
                 std::cout<<"First player  : "<<agents[i].getName()<<std::endl;
                 std::cout<<"Second player : "<<agents[j].getName()<<std::endl;
 
@@ -126,17 +126,6 @@ int main(int argc, char** argv){
         delete player1;
         delete player2;
     }
-
-    
-
-    
-
-    
-
-
-
-    //AI::MancalaUI mancala(agents[1], user);
-    //mancala.run();
 
     return 0;
 }
