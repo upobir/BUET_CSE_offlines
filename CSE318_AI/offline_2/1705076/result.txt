@@ -1,0 +1,187 @@
+Play ai tournament? :First player  : AI with heuristics 1 with max depth 10
+Second player : AI with heuristics 1 with max depth 10
+First player won  : 50
+Second player won : 0
+Draws             : 0
+First player  : AI with heuristics 1 with max depth 10
+Second player : AI with heuristics 2 with max depth 10
+First player won  : 50
+Second player won : 0
+Draws             : 0
+First player  : AI with heuristics 1 with max depth 10
+Second player : AI with heuristics 3 with max depth 10
+First player won  : 50
+Second player won : 0
+Draws             : 0
+First player  : AI with heuristics 1 with max depth 10
+Second player : AI with heuristics 4 with max depth 10
+First player won  : 50
+Second player won : 0
+Draws             : 0
+First player  : AI with heuristics 1 with max depth 10
+Second player : AI with heuristics 5 with max depth 10
+First player won  : 50
+Second player won : 0
+Draws             : 0
+First player  : AI with heuristics 1 with max depth 10
+Second player : AI with heuristics 6 with max depth 10
+First player won  : 50
+Second player won : 0
+Draws             : 0
+First player  : AI with heuristics 2 with max depth 10
+Second player : AI with heuristics 1 with max depth 10
+First player won  : 50
+Second player won : 0
+Draws             : 0
+First player  : AI with heuristics 2 with max depth 10
+Second player : AI with heuristics 2 with max depth 10
+First player won  : 50
+Second player won : 0
+Draws             : 0
+First player  : AI with heuristics 2 with max depth 10
+Second player : AI with heuristics 3 with max depth 10
+First player won  : 50
+Second player won : 0
+Draws             : 0
+First player  : AI with heuristics 2 with max depth 10
+Second player : AI with heuristics 4 with max depth 10
+First player won  : 50
+Second player won : 0
+Draws             : 0
+First player  : AI with heuristics 2 with max depth 10
+Second player : AI with heuristics 5 with max depth 10
+First player won  : 50
+Second player won : 0
+Draws             : 0
+First player  : AI with heuristics 2 with max depth 10
+Second player : AI with heuristics 6 with max depth 10
+First player won  : 50
+Second player won : 0
+Draws             : 0
+First player  : AI with heuristics 3 with max depth 10
+Second player : AI with heuristics 1 with max depth 10
+First player won  : 50
+Second player won : 0
+Draws             : 0
+First player  : AI with heuristics 3 with max depth 10
+Second player : AI with heuristics 2 with max depth 10
+First player won  : 50
+Second player won : 0
+Draws             : 0
+First player  : AI with heuristics 3 with max depth 10
+Second player : AI with heuristics 3 with max depth 10
+First player won  : 50
+Second player won : 0
+Draws             : 0
+First player  : AI with heuristics 3 with max depth 10
+Second player : AI with heuristics 4 with max depth 10
+First player won  : 50
+Second player won : 0
+Draws             : 0
+First player  : AI with heuristics 3 with max depth 10
+Second player : AI with heuristics 5 with max depth 10
+First player won  : 50
+Second player won : 0
+Draws             : 0
+First player  : AI with heuristics 3 with max depth 10
+Second player : AI with heuristics 6 with max depth 10
+First player won  : 50
+Second player won : 0
+Draws             : 0
+First player  : AI with heuristics 4 with max depth 10
+Second player : AI with heuristics 1 with max depth 10
+First player won  : 0
+Second player won : 50
+Draws             : 0
+First player  : AI with heuristics 4 with max depth 10
+Second player : AI with heuristics 2 with max depth 10
+First player won  : 0
+Second player won : 50
+Draws             : 0
+First player  : AI with heuristics 4 with max depth 10
+Second player : AI with heuristics 3 with max depth 10
+First player won  : 0
+Second player won : 50
+Draws             : 0
+First player  : AI with heuristics 4 with max depth 10
+Second player : AI with heuristics 4 with max depth 10
+First player won  : 50
+Second player won : 0
+Draws             : 0
+First player  : AI with heuristics 4 with max depth 10
+Second player : AI with heuristics 5 with max depth 10
+First player won  : 50
+Second player won : 0
+Draws             : 0
+First player  : AI with heuristics 4 with max depth 10
+Second player : AI with heuristics 6 with max depth 10
+First player won  : 0
+Second player won : 50
+Draws             : 0
+First player  : AI with heuristics 5 with max depth 10
+Second player : AI with heuristics 1 with max depth 10
+First player won  : 0
+Second player won : 50
+Draws             : 0
+First player  : AI with heuristics 5 with max depth 10
+Second player : AI with heuristics 2 with max depth 10
+First player won  : 0
+Second player won : 50
+Draws             : 0
+First player  : AI with heuristics 5 with max depth 10
+Second player : AI with heuristics 3 with max depth 10
+First player won  : 0
+Second player won : 50
+Draws             : 0
+First player  : AI with heuristics 5 with max depth 10
+Second player : AI with heuristics 4 with max depth 10
+First player won  : 0
+Second player won : 50
+Draws             : 0
+First player  : AI with heuristics 5 with max depth 10
+Second player : AI with heuristics 5 with max depth 10
+First player won  : 50
+Second player won : 0
+Draws             : 0
+First player  : AI with heuristics 5 with max depth 10
+Second player : AI with heuristics 6 with max depth 10
+First player won  : 0
+Second player won : 50
+Draws             : 0
+First player  : AI with heuristics 6 with max depth 10
+Second player : AI with heuristics 1 with max depth 10
+First player won  : 50
+Second player won : 0
+Draws             : 0
+First player  : AI with heuristics 6 with max depth 10
+Second player : AI with heuristics 2 with max depth 10
+First player won  : 50
+Second player won : 0
+Draws             : 0
+First player  : AI with heuristics 6 with max depth 10
+Second player : AI with heuristics 3 with max depth 10
+First player won  : 50
+Second player won : 0
+Draws             : 0
+First player  : AI with heuristics 6 with max depth 10
+Second player : AI with heuristics 4 with max depth 10
+First player won  : 50
+Second player won : 0
+Draws             : 0
+First player  : AI with heuristics 6 with max depth 10
+Second player : AI with heuristics 5 with max depth 10
+First player won  : 50
+Second player won : 0
+Draws             : 0
+First player  : AI with heuristics 6 with max depth 10
+Second player : AI with heuristics 6 with max depth 10
+First player won  : 50
+Second player won : 0
+Draws             : 0
+  1 2 3 4 5 6
+1 W W W W W W
+2 W W W W W W
+3 W W W W W W
+4 L L L W W L
+5 L L L L W L
+6 W W W W W W

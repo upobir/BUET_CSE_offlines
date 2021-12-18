@@ -5,6 +5,8 @@
 #include <cassert>
 
 namespace AI {
+    int cnt = 0;
+
     AIRounds::AIRounds(AIAgent const& _agent1, AIAgent const& _agent2) 
         : agent1(_agent1), agent2(_agent2) {
     }
@@ -14,7 +16,8 @@ namespace AI {
         std::tuple<int, int, int> result;
         for(int i = 0; i<roundCnt; i++){
             int gameResult = runOneRound();
-            // debug(gameResult);
+            debug(cnt);
+            cnt++;
             switch(gameResult){
                 case 1:
                     std::get<0>(result)++;
