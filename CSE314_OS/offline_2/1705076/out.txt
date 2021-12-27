@@ -1,0 +1,123 @@
+Passenger 1 waiting at kiosk 1 at time 0
+Passenger 2 waiting at kiosk 2 at time 0
+
+Passenger 1 has got his boarding pass at time 1
+Passenger 1 has started waiting for security check in belt 1 at 1
+Passenger 3 (VIP) waiting at kiosk 1 at time 1
+Passenger 2 has got his boarding pass at time 1
+Passenger 2 has started waiting for security check in belt 2 at 1
+Passenger 4 waiting at kiosk 2 at time 1
+
+Passenger 1 has crossed the security check at 2
+Passenger 1 waiting at boarding gate at time 2
+Passenger 3 (VIP) has got his boarding pass at time 2
+Passenger 3 (VIP) got on vip channel at left at time 2
+Passenger 5 (VIP) waiting at kiosk 1 at time 2
+Passenger 2 has crossed the security check at 2
+Passenger 2 has lost their pass
+Passenger 4 has got his boarding pass at time 2
+Passenger 4 has started waiting for security check in belt 1 at 2
+Passenger 6 waiting at kiosk 2 at time 2
+
+Passenger 1 has boarded the plane at time 3
+Passenger 3 (VIP) got off vip channel at right at time 3
+Passenger 3 (VIP) has lost their pass
+Passenger 3 (VIP) got on vip channel at right at time 3
+Passenger 2 got on vip channel at right at time 3
+Passenger 5 (VIP) has got his boarding pass at time 3
+Passenger 7 waiting at kiosk 1 at time 3
+Passenger 4 has crossed the security check at 3
+Passenger 4 has lost their pass
+Passenger 6 has got his boarding pass at time 3
+Passenger 6 has started waiting for security check in belt 1 at 3
+Passenger 10 waiting at kiosk 2 at time 3
+
+Passenger 3 (VIP) got off vip channel at left at time 4
+Passenger 3 (VIP) waiting at special kiosk at time 4
+Passenger 7 has got his boarding pass at time 4
+Passenger 7 has started waiting for security check in belt 1 at 4
+Passenger 9 waiting at kiosk 1 at time 4
+Passenger 2 got off vip channel at left at time 4
+Passenger 5 (VIP) got on vip channel at left at time 4
+Passenger 6 has crossed the security check at 4
+Passenger 10 has got his boarding pass at time 4
+Passenger 6 waiting at boarding gate at time 4
+Passenger 10 has started waiting for security check in belt 2 at 4
+Passenger 8 (VIP) waiting at kiosk 2 at time 4
+
+Passenger 3 (VIP) has got his new boarding pass at time 5
+Passenger 5 (VIP) got off vip channel at right at time 5
+Passenger 5 (VIP) has lost their pass
+Passenger 3 (VIP) got on vip channel at left at time 5
+Passenger 7 has crossed the security check at 5
+Passenger 7 has lost their pass
+Passenger 2 waiting at special kiosk at time 5
+Passenger 9 has got his boarding pass at time 5
+Passenger 9 has started waiting for security check in belt 1 at 5
+Passenger 10 has crossed the security check at 5
+Passenger 6 has boarded the plane at time 5
+Passenger 10 has lost their pass
+Passenger 8 (VIP) has got his boarding pass at time 5
+Passenger 8 (VIP) got on vip channel at left at time 5
+
+Passenger 9 has crossed the security check at 6
+Passenger 2 has got his new boarding pass at time 6
+Passenger 2 got on vip channel at left at time 6
+Passenger 9 has lost their pass
+Passenger 3 (VIP) got off vip channel at right at time 6
+Passenger 3 (VIP) waiting at boarding gate at time 6
+Passenger 8 (VIP) got off vip channel at right at time 6
+
+Passenger 2 got off vip channel at right at time 7
+Passenger 3 (VIP) has boarded the plane at time 7
+Passenger 5 (VIP) got on vip channel at right at time 7
+Passenger 8 (VIP) waiting at boarding gate at time 7
+Passenger 4 got on vip channel at right at time 7
+Passenger 7 got on vip channel at right at time 7
+Passenger 10 got on vip channel at right at time 7
+Passenger 9 got on vip channel at right at time 7
+
+Passenger 5 (VIP) got off vip channel at left at time 8
+Passenger 5 (VIP) waiting at special kiosk at time 8
+Passenger 4 got off vip channel at left at time 8
+Passenger 7 got off vip channel at left at time 8
+Passenger 8 (VIP) has boarded the plane at time 8
+Passenger 10 got off vip channel at left at time 8
+Passenger 9 got off vip channel at left at time 8
+Passenger 2 waiting at boarding gate at time 8
+
+Passenger 5 (VIP) has got his new boarding pass at time 9
+Passenger 5 (VIP) got on vip channel at left at time 9
+Passenger 7 waiting at special kiosk at time 9
+Passenger 2 has boarded the plane at time 9
+Passenger 5 (VIP) got off vip channel at right at time 10
+Passenger 5 (VIP) waiting at boarding gate at time 10
+Passenger 7 has got his new boarding pass at time 10
+Passenger 7 got on vip channel at left at time 10
+Passenger 4 waiting at special kiosk at time 10
+
+Passenger 5 (VIP) has boarded the plane at time 11
+Passenger 7 got off vip channel at right at time 11
+Passenger 7 waiting at boarding gate at time 11
+Passenger 4 has got his new boarding pass at time 11
+Passenger 4 got on vip channel at left at time 11
+Passenger 10 waiting at special kiosk at time 11
+
+Passenger 7 has boarded the plane at time 12
+Passenger 4 got off vip channel at right at time 12
+Passenger 4 waiting at boarding gate at time 12
+Passenger 10 has got his new boarding pass at time 12
+Passenger 10 got on vip channel at left at time 12
+Passenger 9 waiting at special kiosk at time 12
+
+Passenger 4 has boarded the plane at time 13
+Passenger 10 got off vip channel at right at time 13
+Passenger 10 waiting at boarding gate at time 13
+Passenger 9 has got his new boarding pass at time 13
+Passenger 9 got on vip channel at left at time 13
+
+Passenger 10 has boarded the plane at time 14
+Passenger 9 got off vip channel at right at time 14
+Passenger 9 waiting at boarding gate at time 14
+
+Passenger 9 has boarded the plane at time 15
