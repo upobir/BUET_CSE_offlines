@@ -1,25 +1,26 @@
-#ifndef KIOSKS_H
-#define KIOSKS_H
+#pragma once
 
 #include <semaphore.h>
 #include "Passenger.h"
 
-typedef struct {
+class Kiosks {
+public:
     int* free_kiosks;
     int free_count;
     int delay;
     sem_t free_semaphore;
     sem_t kiosk_acquire_mutex;
-} Kiosks;
 
-void kiosks_construct(Kiosks* kiosks, int size, int delay);
+    Kiosks() = default;
 
-int kiosks_get_kiosk(Kiosks* kiosks, Passenger* passenger);
+    void init(int size, int delay);
 
-void kiosks_put_kiosk(Kiosks* kiosks, int kiosk);
+    int getKiosk(Passenger& passenger);
 
-void kiosks_checkin(Kiosks* kiosks, int kiosk, Passenger* passenger);
+    void putKiosk(int kiosk);
 
-void kiosks_destroy(Kiosks* kiosks);
+    void checkin(int kiosk, Passenger& passenger);
 
-#endif
+    ~Kiosks();
+};
+

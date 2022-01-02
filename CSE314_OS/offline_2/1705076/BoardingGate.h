@@ -1,22 +1,22 @@
-#ifndef BOARDING_GATE_H
-#define BOARDING_GATE_H
+#pragma once
 
 #include "Passenger.h"
 #include "semaphore.h"
 
-typedef struct {
+class BoardingGate {
+public:
     int delay;
     sem_t boarding_semaphore;
-} BoardingGate;
 
-void boarding_constuct(BoardingGate* boardingGate, int delay);
+    BoardingGate() = default;
 
-void boarding_access(BoardingGate* boardingGate, Passenger* passenger);
+    void init(int delay);
 
-void boarding_board(BoardingGate* boardingGate, Passenger* passenger);
+    void access(Passenger& passenger);
 
-void boarding_release(BoardingGate* boardingGate);
+    void board(Passenger& passenger);
 
-void boarding_destroy(BoardingGate* boardingGate);
+    void release();
 
-#endif
+    ~BoardingGate();
+};

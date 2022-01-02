@@ -1,3 +1,3 @@
 #!/bin/bash
 
-gcc -g -pthread *.c -o main
+g++ -g -pthread *.cpp -o main

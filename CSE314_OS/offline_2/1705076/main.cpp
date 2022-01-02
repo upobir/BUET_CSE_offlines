@@ -2,12 +2,15 @@
 #include <unistd.h>
 #include <pthread.h>
 #include <semaphore.h>
+#include <time.h>
+#include <random>
 
 #include "Passenger.h"
 #include "main.h"
 
 
-const int PASSENGER_COUNT = 10;
+const int PASSENGER_COUNT = 15;
+const int INTERVAL_SECS = 20;
 
 FILE* out_file;
 Kiosks kiosks;
@@ -35,36 +38,30 @@ int main(){
 
     scanf("%d %d %d", &M, &N, &P);
     scanf("%d %d %d %d", &w, &x, &y, &z);
-    out_file = fopen("out.txt", "w");
-    // out_file = stdout;
+    // out_file = fopen("out.txt", "w");
+    out_file = stdout;
 
     srand(time(NULL));
+    std::mt19937 rng(time(NULL));
+    std::exponential_distribution<double> dist(PASSENGER_COUNT);
 
-    kiosks_construct(&kiosks, M, w);
-    securitycheck_construct(&securtiyCheck, N, P, x);
-    boarding_constuct(&boardingGate, y);
-    specialkiosk_construct(&specialKiosk, w);
-    vipchannel_construct(&vipChannel, z);
+    kiosks.init(M, w);
+    securtiyCheck.init(N, P, x);
+    boardingGate.init(y);
+    specialKiosk.init(w);
+    vipChannel.init(z);
 
     Passenger passengers[PASSENGER_COUNT];
 
     start = time(NULL);
     for(int i = 0; i<PASSENGER_COUNT; i++){
-        passenger_construct_run(&passengers[i], i+1);
+        auto gap = dist(rng) * INTERVAL_SECS;
+        timespec req = {.tv_sec = (int) gap, .tv_nsec = (int)(1e9 * (gap - (int) gap))}, rem;
+        nanosleep(&req, &rem);
+        passengers[i].init(i+1);
     }
 
-
-    for(int i = 0; i<PASSENGER_COUNT; i++){
-        passenger_destroy(&passengers[i]);
-    }
-
-    kiosks_destroy(&kiosks);
-    securitycheck_destroy(&securtiyCheck);
-    boarding_destroy(&boardingGate);
-    specialkiosk_destroy(&specialKiosk);
-    vipchannel_destroy(&vipChannel);
-
-    fclose(out_file);
+    // fclose(out_file);
 
     return 0;
 }

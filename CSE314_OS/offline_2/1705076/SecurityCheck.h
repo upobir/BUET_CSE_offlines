@@ -1,24 +1,25 @@
-#ifndef SECURITY_CHECKH_H
-#define SECURITY_CHECKH_H
+#pragma once
 
 #include "Passenger.h"
 #include "semaphore.h"
 
-typedef struct {
+class SecurityCheck {
+public:
     int beltCount;
     int beltCapacity;
     int delay;
     sem_t* capacity_semaphores;
-} SecurityCheck;
 
-void securitycheck_construct(SecurityCheck* securtiyCheck, int beltCount, int beltCapacity, int delay);
+    SecurityCheck() = default;
 
-void secritycheck_access_belt(SecurityCheck* securtiyCheck, int beltNum, Passenger* passenger);
+    void init(int beltCount, int beltCapacity, int delay);
 
-void securtiycheck_release_belt(SecurityCheck* securtiyCheck, int beltNum);
+    void accessBelt(int beltNum, Passenger& passenger);
 
-void secritycheck_checkin(SecurityCheck* securtiyCheck, int beltNum, Passenger* passenger);
+    void releaseBelt(int beltNum);
 
-void securitycheck_destroy(SecurityCheck* securityCheck);
+    void checkin(int beltNum, Passenger& passenger);
 
-#endif
+    ~SecurityCheck();
+
+};

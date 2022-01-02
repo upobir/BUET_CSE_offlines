@@ -1,5 +1,4 @@
-#ifndef PASSENGER_H
-#define PASSENGER_H
+#pragma once
 
 #include <pthread.h>
 #include <stdbool.h>
@@ -9,29 +8,29 @@
 #define PASSENGER_PER_VIP 5
 #define PASSENGER_PER_PASS_LOST 3
 
-typedef struct{
+class Passenger {
+public:
     int id;
     pthread_t thread;
     bool vip;
-}  Passenger;
 
+    Passenger() = default;
 
-void* passenger_run(void* passenger_v);
+    void init(int id);
 
-void passenger_construct_run(Passenger* passenger, int id);
+    void kioskCheckin();
 
-void passenger_kiosk_checkin(Passenger* passenger);
+    void securityCheck();
 
-void passenger_securitycheck(Passenger* passenger);
+    void board();
 
-void passenger_board(Passenger* passenger);
+    void losePass();
 
-void passenger_lose_pass(Passenger* passenger);
+    void specialKioskCheckin();
 
-void passenger_specialkiosk_checkin(Passenger* passenger);
+    void useVipChannel(bool leftToRight);
 
-void passenger_use_vipchannel(Passenger* passenger, bool leftToRight);
+    ~Passenger();
 
-void passenger_destroy(Passenger* passenger);
-
-#endif
+    static void* run(void* passenger_v);
+};

@@ -1,10 +1,10 @@
-#ifndef VIP_CHANNEL_H
-#define VIP_CHANNEL_H
+#pragma once
 
 #include "Passenger.h"
 #include <stdbool.h>
 
-typedef struct {
+class VIPChannel {
+public:
     int delay;
     int onL2R;
     int onR2L;
@@ -12,16 +12,17 @@ typedef struct {
     sem_t R2Lblock;
     sem_t L2Rmutex;
     sem_t R2Lmutex;
-} VIPChannel;
 
-void vipchannel_construct(VIPChannel* channel, int delay);
+    VIPChannel() = default;
 
-void vipchannel_access(VIPChannel* channel, bool leftToRight, Passenger* passenger);
+    void init(int delay);
 
-void vipchannel_use(VIPChannel* channel, bool leftToRight, Passenger* passenger);
+    void access(bool leftToRight, Passenger& passenger);
 
-void vipchannel_release(VIPChannel* channel, bool leftToRight);
+    void use(bool leftToRight, Passenger& passenger);
 
-void vipchannel_destroy(VIPChannel* channel);
+    void release(bool leftToRight);
 
-#endif
+    ~VIPChannel();
+
+};
