@@ -38,8 +38,8 @@ int main(){
 
     scanf("%d %d %d", &M, &N, &P);
     scanf("%d %d %d %d", &w, &x, &y, &z);
-    // out_file = fopen("out.txt", "w");
-    out_file = stdout;
+    out_file = fopen("out.txt", "w");
+    // out_file = stdout;
 
     srand(time(NULL));
     std::mt19937 rng(time(NULL));
@@ -61,7 +61,11 @@ int main(){
         passengers[i].init(i+1);
     }
 
-    // fclose(out_file);
+    for(int i = 0; i<PASSENGER_COUNT; i++){
+        pthread_join(passengers[i].thread, NULL);
+    }
+
+    fclose(out_file);
 
     return 0;
 }

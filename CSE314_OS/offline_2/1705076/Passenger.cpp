@@ -81,7 +81,6 @@ void Passenger::useVipChannel(bool leftToRight) {
 }
 
 Passenger::~Passenger() {
-    pthread_join(thread, NULL);
 }
 
 void* Passenger::run(void* passenger_v) {
