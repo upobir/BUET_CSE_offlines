@@ -5,11 +5,11 @@
 #include <iostream>
 
 
-MarkovModel::MarkovModel(std::pair<int, int> bounds, std::vector< std::pair<int, int> > const& obstacles, double adjProb, double correctProb){
-    rowCount = bounds.first;
+MarkovModel::MarkovModel(int rowCount_, int colCount_, std::vector< std::pair<int, int> > const& obstacles, double adjProb, double correctProb){
+    rowCount = rowCount_;
     assert(rowCount > 0);
 
-    colCount = bounds.second;
+    colCount = colCount_;
     assert(colCount > 0);
 
     auto obstacleMap = createObstacleMap(obstacles);

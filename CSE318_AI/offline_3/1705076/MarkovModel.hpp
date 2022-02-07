@@ -11,7 +11,7 @@ using Position = std::pair<int, int>;
 
 class MarkovModel {
 public:
-    MarkovModel(std::pair<int, int> bounds, std::vector<Position> const& obstacles, double adjProb, double correctProb);
+    MarkovModel(int rowCount_, int colCount_, std::vector<Position> const& obstacles, double adjProb, double correctProb);
 
     int getRowCount() const;
     int getColCount() const;
