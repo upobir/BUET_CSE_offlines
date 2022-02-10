@@ -53,7 +53,7 @@ index 09d790c..91052b0 100644
  dist:
  	rm -rf dist
 diff --git a/defs.h b/defs.h
-index 82fb982..8424717 100644
+index 82fb982..0d80707 100644
 --- a/defs.h
 +++ b/defs.h
 @@ -52,6 +52,11 @@ struct inode*   nameiparent(char*, char*);
@@ -86,7 +86,13 @@ index 82fb982..8424717 100644
  // spinlock.c
  void            acquire(struct spinlock*);
  void            getcallerpcs(void*, uint*);
-@@ -185,6 +197,15 @@ void            switchuvm(struct proc*);
+@@ -180,11 +192,20 @@ int             deallocuvm(pde_t*, uint, uint);
+ void            freevm(pde_t*);
+ void            inituvm(pde_t*, char*, uint);
+ int             loaduvm(pde_t*, char*, struct inode*, uint, uint);
+-pde_t*          copyuvm(pde_t*, uint);
++pde_t*          copyuvm(struct proc* p, uint);
+ void            switchuvm(struct proc*);
  void            switchkvm(void);
  int             copyout(pde_t*, uint, void*, uint);
  void            clearpteu(pde_t *pgdir, char *uva);
@@ -104,10 +110,10 @@ index 82fb982..8424717 100644
  #define NELEM(x) (sizeof(x)/sizeof((x)[0]))
 diff --git a/dummy.c b/dummy.c
 new file mode 100644
-index 0000000..1efc986
+index 0000000..a0ed705
 --- /dev/null
 +++ b/dummy.c
-@@ -0,0 +1,63 @@
+@@ -0,0 +1,66 @@
 +#include "types.h"
 +#include "stat.h"
 +#include "user.h"
@@ -116,6 +122,8 @@ index 0000000..1efc986
 +dummy()
 +{
 +    int sz = 4096 * 17; 
++    int* mem = (int*)malloc(sz);
++
 +    int pid = fork();
 +    int k;
 +    if(pid == 0){
@@ -125,8 +133,9 @@ index 0000000..1efc986
 +      k = 13;
 +    }
 +
++    //int x = *(int*)(4096 * 124);
++    //printf(1, "%d\n", x);
 +    
-+    int* mem = (int*)malloc(sz);
 +    for(int i = 0; i<sz/4; i++){
 +        mem[i] = k * i;  
 +    }
@@ -391,10 +400,10 @@ index a82d8e2..d6b4c8c 100644
  #endif
 diff --git a/paging.c b/paging.c
 new file mode 100644
-index 0000000..5ac5c63
+index 0000000..fc5b835
 --- /dev/null
 +++ b/paging.c
-@@ -0,0 +1,369 @@
+@@ -0,0 +1,384 @@
 +// [UPOBIR]
 +
 +#include "types.h"
@@ -715,6 +724,21 @@ index 0000000..5ac5c63
 +
 +}
 +
++
++/*
++fork
++    allocproc
++        allocuvm
++growproc
++    allocuvm
++    deallocuvm
++exec
++
++
++proc.c
++exec.c
++*/
++
 +// handle page fault and tell if it's a user page
 +int
 +pagefault(struct proc* p, uint addr){
@@ -727,7 +751,7 @@ index 0000000..5ac5c63
 +  //dumpMetadata(p);
 +  pte_t* pte;
 +  if((pte = walkpgdir(p->pgdir, (void*) (pgnum * PGSIZE), 0)) == 0)
-+    panic("oh no 5");
++    return -1;
 +
 +  //cprintf("checking: %p\n", *pte);
 +  if(*pte & PTE_P)
@@ -795,7 +819,7 @@ index 0000000..21fc4e1
 +
 +#endif // PAGING_H 
 diff --git a/proc.c b/proc.c
-index 806b1b1..9cb101c 100644
+index 806b1b1..9bf34bd 100644
 --- a/proc.c
 +++ b/proc.c
 @@ -6,6 +6,8 @@
@@ -845,6 +869,15 @@ index 806b1b1..9cb101c 100644
    return 0;
  }
  
+@@ -190,7 +203,7 @@ fork(void)
+   }
+ 
+   // Copy process state from proc.
+-  if((np->pgdir = copyuvm(curproc->pgdir, curproc->sz)) == 0){
++  if((np->pgdir = copyuvm(curproc, curproc->sz)) == 0){
+     kfree(np->kstack);
+     np->kstack = 0;
+     np->state = UNUSED;
 @@ -210,6 +223,17 @@ fork(void)
  
    safestrcpy(np->name, curproc->name, sizeof(curproc->name));
@@ -882,7 +915,7 @@ index 806b1b1..9cb101c 100644
          return pid;
        }
      }
-@@ -500,6 +529,22 @@ kill(int pid)
+@@ -500,6 +529,23 @@ kill(int pid)
  // Print a process listing to console.  For debugging.
  // Runs when user types ^P on console.
  // No lock to avoid wedging a stuck machine further.
@@ -902,10 +935,11 @@ index 806b1b1..9cb101c 100644
 +  release(&ptable.lock);
 +}
 +
++
  void
  procdump(void)
  {
-@@ -530,5 +575,46 @@ procdump(void)
+@@ -530,5 +576,48 @@ procdump(void)
          cprintf(" %p", pc[i]);
      }
      cprintf("\n");
@@ -919,7 +953,9 @@ index 806b1b1..9cb101c 100644
 +
 +    // TODO pointers or ints?
 +    cprintf("Page tables:\n");
-+    cprintf("  memory location of page directory = %p\n", p->pgdir);
++    cprintf("  memory location of page directory = %p\n", V2P(p->pgdir));
++    /*if(tmp[0] != tmp2[0])
++        panic("oh no 69");*/
 +    // TODO NPDENTRIES or 512?
 +    for(int i = 0; i<(KERNBASE>>22); i++){
 +      pde_t pde = p->pgdir[i];
@@ -1064,7 +1100,7 @@ index a7e7d2c..077bbe9 100644
      base.s.ptr = freep = prevp = &base;
      base.s.size = 0;
 diff --git a/vm.c b/vm.c
-index 7134cff..9fce1ad 100644
+index 7134cff..ed8a6c1 100644
 --- a/vm.c
 +++ b/vm.c
 @@ -32,7 +32,7 @@ seginit(void)
@@ -1084,3 +1120,34 @@ index 7134cff..9fce1ad 100644
      // The permissions here are overly generous, but they can
      // be further restricted by the permissions in the page table
      // entries, if necessary.
+@@ -313,8 +314,11 @@ clearpteu(pde_t *pgdir, char *uva)
+ // Given a parent process's page table, create a copy
+ // of it for a child.
+ pde_t*
+-copyuvm(pde_t *pgdir, uint sz)
++copyuvm(struct proc* p, uint sz)
+ {
++  // [UPOBIR]
++  pde_t* pgdir = p->pgdir;
++
+   pde_t *d;
+   pte_t *pte;
+   uint pa, i, flags;
+@@ -325,8 +329,15 @@ copyuvm(pde_t *pgdir, uint sz)
+   for(i = 0; i < sz; i += PGSIZE){
+     if((pte = walkpgdir(pgdir, (void *) i, 0)) == 0)
+       panic("copyuvm: pte should exist");
+-    if(!(*pte & PTE_P))
+-      panic("copyuvm: page not present");
++    if(!(*pte & PTE_P)){
++      // [UPOBIR]
++      //panic("copyuvm: page not present");
++      if(pagefault(p, i) == -1)
++        panic("copyuvm: page fault failed");
++
++      if((pte = walkpgdir(pgdir, (void *) i, 0)) == 0)
++        panic("copyuvm: paged in page should exist");
++    }
+     pa = PTE_ADDR(*pte);
+     flags = PTE_FLAGS(*pte);
+     if((mem = kalloc()) == 0)
