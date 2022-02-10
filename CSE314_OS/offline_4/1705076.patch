@@ -53,7 +53,7 @@ index 09d790c..91052b0 100644
  dist:
  	rm -rf dist
 diff --git a/defs.h b/defs.h
-index 82fb982..0d80707 100644
+index 82fb982..50dedcd 100644
 --- a/defs.h
 +++ b/defs.h
 @@ -52,6 +52,11 @@ struct inode*   nameiparent(char*, char*);
@@ -72,7 +72,7 @@ index 82fb982..0d80707 100644
  int             wait(void);
  void            wakeup(void*);
  void            yield(void);
-+// [UPOBIR]
++// [UPOBIR] function to update metadata for aging
 +void            updateMetadata();
  
  // swtch.S
@@ -86,56 +86,57 @@ index 82fb982..0d80707 100644
  // spinlock.c
  void            acquire(struct spinlock*);
  void            getcallerpcs(void*, uint*);
-@@ -180,11 +192,20 @@ int             deallocuvm(pde_t*, uint, uint);
+@@ -180,11 +192,23 @@ int             deallocuvm(pde_t*, uint, uint);
  void            freevm(pde_t*);
  void            inituvm(pde_t*, char*, uint);
  int             loaduvm(pde_t*, char*, struct inode*, uint, uint);
 -pde_t*          copyuvm(pde_t*, uint);
++// [UPOBIR] copyuvm takes process now
 +pde_t*          copyuvm(struct proc* p, uint);
  void            switchuvm(struct proc*);
  void            switchkvm(void);
  int             copyout(pde_t*, uint, void*, uint);
  void            clearpteu(pde_t *pgdir, char *uva);
++// [UPOBIR] walkpgdir is public now
 +pte_t*          walkpgdir(pde_t *pgdir, const void *va, int alloc);
 +
-+// [UPOBIR]
++// [UPOBIR] paging.c function
 +// paging.c
 +void            addPageRange(struct proc* p, uint from, uint to);  
 +void            removePageRange(struct proc* p, uint from, uint to);
 +void            dumpMetadata(struct proc* p);
 +int             pagefault(struct proc* p, uint addr);
 +void            updateAgingMetadata(struct proc* p);
++void            clearMetadata(struct proc* p);
  
  // number of elements in fixed-size array
  #define NELEM(x) (sizeof(x)/sizeof((x)[0]))
 diff --git a/dummy.c b/dummy.c
 new file mode 100644
-index 0000000..a0ed705
+index 0000000..57e9d02
 --- /dev/null
 +++ b/dummy.c
-@@ -0,0 +1,66 @@
+@@ -0,0 +1,68 @@
++// [UPOBIR] dummy program to test paging
++
 +#include "types.h"
 +#include "stat.h"
 +#include "user.h"
 +
 +void
-+dummy()
++dummy(int proc_count)
 +{
 +    int sz = 4096 * 17; 
 +    int* mem = (int*)malloc(sz);
 +
-+    int pid = fork();
-+    int k;
-+    if(pid == 0){
-+      k = 17;
-+    }
-+    else{
-+      k = 13;
++    int pid;
++    int k = 13;
++
++    for(int i = 1; k == 13 && i<proc_count; i++){
++        if((pid = fork()) == 0)
++            k = 13 + i;
 +    }
 +
-+    //int x = *(int*)(4096 * 124);
-+    //printf(1, "%d\n", x);
-+    
 +    for(int i = 0; i<sz/4; i++){
 +        mem[i] = k * i;  
 +    }
@@ -157,8 +158,8 @@ index 0000000..a0ed705
 +
 +    free((void*)mem);
 +
-+    if(pid != 0)
-+      wait();
++    for(int i = 1; k == 13 && i<proc_count; i++)
++        wait();
 +}
 +
 +void rec(int x, int y){
@@ -175,13 +176,17 @@ index 0000000..a0ed705
 +int
 +main(int argc, char *argv[])
 +{
-+    dummy();
++    int proc_count = 1;
++    if(argc > 1){
++        proc_count = atoi(argv[1]);
++    }
++    dummy(proc_count);
 +    //rec(0, 0);
 +    //nullpoint();
 +    exit();
 +}
 diff --git a/exec.c b/exec.c
-index b40134f..d2e9043 100644
+index b40134f..49f2a7f 100644
 --- a/exec.c
 +++ b/exec.c
 @@ -49,6 +49,7 @@ exec(char *path, char **argv)
@@ -192,32 +197,31 @@ index b40134f..d2e9043 100644
      if((sz = allocuvm(pgdir, sz, ph.vaddr + ph.memsz)) == 0)
        goto bad;
      if(ph.vaddr % PGSIZE != 0)
-@@ -66,6 +67,8 @@ exec(char *path, char **argv)
+@@ -66,6 +67,9 @@ exec(char *path, char **argv)
    if((sz = allocuvm(pgdir, sz, sz + 2*PGSIZE)) == 0)
      goto bad;
    clearpteu(pgdir, (char*)(sz - 2*PGSIZE));
-+  // [UPOBIR]
++  // [UPOBIR] make 0th page inaccessible to protect null pointer
 +  clearpteu(pgdir, (char*)0);
++
    sp = sz;
  
    // Push argument strings, prepare rest of stack in ustack.
-@@ -95,11 +98,21 @@ exec(char *path, char **argv)
+@@ -95,11 +99,19 @@ exec(char *path, char **argv)
  
    // Commit to the user image.
    oldpgdir = curproc->pgdir;
-+  // [UPOBIR]
++  // [UPOBIR] if not init, remove old pages
 +  if(curproc->pid != 1){
-+      //cprintf("exec: %d\n", curproc->pid);
-+      removePageRange(curproc, 0, curproc->sz);
++      clearMetadata(curproc);
 +  }
    curproc->pgdir = pgdir;
    curproc->sz = sz;
    curproc->tf->eip = elf.entry;  // main
    curproc->tf->esp = sp;
    switchuvm(curproc);
-+  // [UPOBIR]
++  // [UPOBIR] add new process pages
 +  if(curproc->pid != 1){
-+      //cprintf("exec: %d\n", curproc->pid);
 +      addPageRange(curproc, 0, curproc->sz);
 +  }
    freevm(oldpgdir);
@@ -400,11 +404,11 @@ index a82d8e2..d6b4c8c 100644
  #endif
 diff --git a/paging.c b/paging.c
 new file mode 100644
-index 0000000..fc5b835
+index 0000000..86ddbfc
 --- /dev/null
 +++ b/paging.c
-@@ -0,0 +1,384 @@
-+// [UPOBIR]
+@@ -0,0 +1,398 @@
++// [UPOBIR] paging functions
 +
 +#include "types.h"
 +#include "defs.h"
@@ -414,6 +418,22 @@ index 0000000..fc5b835
 +#include "x86.h"
 +#include "paging.h"
 +#include "proc.h"
++
++void
++clearMetadata(struct proc* p){
++  memset(&p->metadata, -1, sizeof p->metadata); 
++
++#ifdef FIFO_PAGING
++  p->metadata.start = 0;
++#endif
++
++#ifdef AGING_PAGING
++  memset(&p->metadata.aging_bits, 0, sizeof p->metadata.aging_bits); 
++#endif
++
++  return;
++}
++
 +
 +void
 +dumpFifoMetadata(struct fifo_paging_data* data){
@@ -429,6 +449,7 @@ index 0000000..fc5b835
 +  }
 +  cprintf("\n");
 +}
++
 +
 +void
 +dumpAgingMetadata(struct aging_paging_data* data){
@@ -474,7 +495,7 @@ index 0000000..fc5b835
 +    //cprintf("%d\n", p->metadata.in_phy[i]);
 +    p->metadata.aging_bits[i] >>= 1;
 +    if((pte = walkpgdir(p->pgdir, (void*) (p->metadata.in_phy[i] * PGSIZE), 0)) == 0)
-+      panic("oh no 7");
++      panic("updateAgingMetadata: walkpgdir failed");
 +    if(*pte & PTE_A){
 +      //cprintf("%d accessed %d %d\n", ticks, p->pid, p->metadata.in_phy[i]);
 +      p->metadata.aging_bits[i] |= 1<<31;
@@ -488,10 +509,10 @@ index 0000000..fc5b835
 +writePageToSwapFile(struct proc* p, int pgnum, int free_file_loc){
 +  pte_t* pte;
 +  if((pte = walkpgdir(p->pgdir, (void*) (pgnum * PGSIZE), 0)) == 0)
-+    panic("oh no 2");
++    panic("writePageToSwapFile: walkpgdir failed");
 +
 +  // write page contents to swap file, in chosen filelocation
-+  //cprintf("writing %d to file\n", pgnum) ;
++  //cprintf("[WRITE] writing %d to file\n", pgnum) ;
 +  uint pa = PTE_ADDR(*pte);
 +  writeToSwapFile(p, (char*) P2V(pa) , free_file_loc * PGSIZE, PGSIZE);     
 +  kfree((char*) P2V(pa));
@@ -519,7 +540,7 @@ index 0000000..fc5b835
 +  // if the position found is not empty (i.e. it is the first position)
 +  if(p->metadata.in_phy_queue[free_pos] != -1){
 +    if(p->metadata.start != free_pos)
-+      panic("oh no");
++      panic("addFifoPage: free position doesn't match with queue start");
 +
 +    // find a free file location in swap file
 +    int free_file_loc = 0;
@@ -680,7 +701,7 @@ index 0000000..fc5b835
 +void
 +addPageRange(struct proc* p, uint from, uint to){  
 +  if (from > to){
-+    panic("from > to");
++    panic("addPageRange: from > to");
 +  }
 +
 +  //cprintf("adding: from: %d, to: %d\n", from, to);
@@ -689,7 +710,7 @@ index 0000000..fc5b835
 +    int pgnum = a>>12;
 +    pte_t* pte;
 +    if((pte = walkpgdir(p->pgdir, (void*) a, 0)) == 0){
-+      panic("oh no 3");
++      panic("addPageRange: walkpgdir failed");
 +    }
 +    if(!(*pte & PTE_U))
 +      continue;
@@ -704,7 +725,7 @@ index 0000000..fc5b835
 +void
 +removePageRange(struct proc* p, uint from, uint to){
 +  if (from > to){
-+    panic("from > to");
++    panic("removePageRange: from > to");
 +  }
 +  
 +  //cprintf("removing: from: %d, to: %d\n", from, to);
@@ -713,7 +734,7 @@ index 0000000..fc5b835
 +    int pgnum = a >> 12;
 +    pte_t* pte;
 +    if((pte = walkpgdir(p->pgdir, (void*) a, 0)) == 0){
-+      panic("oh no 4");
++      panic("removePageRane: walkpgdir failed");
 +    }
 +
 +    if(!(*pte & PTE_U))
@@ -767,15 +788,14 @@ index 0000000..fc5b835
 +  }
 +
 +  if(file_location == MAX_TOTAL_PAGES)
-+    panic("oh no 6");
++    panic("pagefault: could not find page among paged out pages");
 +
 +  *pte &= ((1<<PTXSHIFT)-1);
 +  char* mem = kalloc();
-+  //if((mem & ~((1<<PTXSHIFT)-1)) != 0)
-+  //  panic("oh no 7");
 +  *pte |= (pte_t) V2P(mem);
 +
 +  uint pa = PTE_ADDR(*pte);
++  //cprintf("[READ] reading page %d\n", pgnum);
 +  readFromSwapFile(p, (char*) P2V(pa), file_location * PGSIZE, PGSIZE);
 +  p->metadata.in_file_pages[file_location] = -1;
 +   
@@ -786,15 +806,13 @@ index 0000000..fc5b835
 +  //dumpMetadata(p);
 +  return 0;
 +}
-+
-+
 diff --git a/paging.h b/paging.h
 new file mode 100644
-index 0000000..21fc4e1
+index 0000000..16f1e16
 --- /dev/null
 +++ b/paging.h
 @@ -0,0 +1,24 @@
-+// [UPOBIR]
++// [UPOBIR] paging structures
 +
 +#ifndef PAGING_H
 +#define PAGING_H
@@ -819,29 +837,20 @@ index 0000000..21fc4e1
 +
 +#endif // PAGING_H 
 diff --git a/proc.c b/proc.c
-index 806b1b1..9bf34bd 100644
+index 806b1b1..f0def96 100644
 --- a/proc.c
 +++ b/proc.c
-@@ -6,6 +6,8 @@
- #include "x86.h"
- #include "proc.h"
- #include "spinlock.h"
-+// [UPOBIR]
-+#include "paging.h"
- 
- struct {
-   struct spinlock lock;
-@@ -102,6 +104,9 @@ found:
+@@ -102,6 +102,9 @@ found:
    sp -= sizeof *p->tf;
    p->tf = (struct trapframe*)sp;
  
-+  // [UPOBIR]
-+  memset(&p->metadata, -1, sizeof p->metadata);
++  // [UPOBIR] clear metadata of allocated process
++  clearMetadata(p);
 +
    // Set up new context to start executing at forkret,
    // which returns to trapret.
    sp -= 4;
-@@ -158,19 +163,27 @@ userinit(void)
+@@ -158,19 +161,27 @@ userinit(void)
  int
  growproc(int n)
  {
@@ -854,13 +863,13 @@ index 806b1b1..9bf34bd 100644
    if(n > 0){
      if((sz = allocuvm(curproc->pgdir, sz, sz + n)) == 0)
        return -1;
-+    // [UPOBIR]
++    // [UPOBIR] add page range when growing memory
 +    addPageRange(curproc, curproc->sz, sz);
    } else if(n < 0){
      if((sz = deallocuvm(curproc->pgdir, sz, sz + n)) == 0)
        return -1;
-+    // [UPOBIR]
-+    //removePageRange(curproc, sz, curproc->sz);
++    // [UPOBIR] remove page range when shrinking memory
++    removePageRange(curproc, sz, curproc->sz);
    }
    curproc->sz = sz;
 +  //cprintf("growproc: %d\n", sz % 4096 == 0);
@@ -869,7 +878,7 @@ index 806b1b1..9bf34bd 100644
    return 0;
  }
  
-@@ -190,7 +203,7 @@ fork(void)
+@@ -190,7 +201,7 @@ fork(void)
    }
  
    // Copy process state from proc.
@@ -878,49 +887,51 @@ index 806b1b1..9bf34bd 100644
      kfree(np->kstack);
      np->kstack = 0;
      np->state = UNUSED;
-@@ -210,6 +223,17 @@ fork(void)
+@@ -210,6 +221,10 @@ fork(void)
  
    safestrcpy(np->name, curproc->name, sizeof(curproc->name));
  
-+  // [UPOBIR]  
++  // [UPOBIR] creating swap file and adding pages to metadata
 +  createSwapFile(np);
-+  memset(&np->metadata, -1, sizeof np->metadata); 
-+#ifdef FIFO_PAGING
-+  np->metadata.start = 0;
-+#endif
-+#ifdef AGING_PAGING
-+  memset(&np->metadata.aging_bits, 0, sizeof np->metadata.aging_bits); 
-+#endif
 +  addPageRange(np, 0, np->sz);
 +
    pid = np->pid;
  
    acquire(&ptable.lock);
-@@ -285,6 +309,8 @@ wait(void)
+@@ -265,6 +280,7 @@ exit(void)
+   curproc->state = ZOMBIE;
+   sched();
+   panic("zombie exit");
++  removeSwapFile(curproc);
+ }
+ 
+ // Wait for a child process to exit and return its pid.
+@@ -285,6 +301,8 @@ wait(void)
          continue;
        havekids = 1;
        if(p->state == ZOMBIE){
-+        // [UPOBIR]
++        // [UPOBIR] create temporary process to remove it's swap file later
 +        struct proc tmp = *p;
          // Found one.
          pid = p->pid;
          kfree(p->kstack);
-@@ -296,6 +322,9 @@ wait(void)
+@@ -296,6 +314,9 @@ wait(void)
          p->killed = 0;
          p->state = UNUSED;
          release(&ptable.lock);
-+        // [UPOBIR]
++        // [UPOBIR] remove swap file of terminated process
 +        removeSwapFile(&tmp);
 +        
          return pid;
        }
      }
-@@ -500,6 +529,23 @@ kill(int pid)
+@@ -500,6 +521,24 @@ kill(int pid)
  // Print a process listing to console.  For debugging.
  // Runs when user types ^P on console.
  // No lock to avoid wedging a stuck machine further.
 +
 +
++// [UPOBIR] update meta data function
 +void
 +updateMetadata(){
 +  acquire(&ptable.lock);
@@ -939,7 +950,7 @@ index 806b1b1..9bf34bd 100644
  void
  procdump(void)
  {
-@@ -530,5 +576,48 @@ procdump(void)
+@@ -530,5 +569,48 @@ procdump(void)
          cprintf(" %p", pc[i]);
      }
      cprintf("\n");
@@ -989,22 +1000,23 @@ index 806b1b1..9bf34bd 100644
    }
  }
 diff --git a/proc.h b/proc.h
-index 1647114..dcdbf3c 100644
+index 1647114..aa55d56 100644
 --- a/proc.h
 +++ b/proc.h
 @@ -1,3 +1,6 @@
-+//UPOBIR
++//UPOBIR including paging.h
 +#include "paging.h"
 +
  // Per-CPU state
  struct cpu {
    uchar apicid;                // Local APIC ID
-@@ -49,6 +52,14 @@ struct proc {
+@@ -49,6 +52,15 @@ struct proc {
    struct file *ofile[NOFILE];  // Open files
    struct inode *cwd;           // Current directory
    char name[16];               // Process name (debugging)
 +  //Swap file. must initiate with create swap file
 +  struct file *swapFile;			//page file
++  // [UPOBIR] metadata in proc structure
 +#ifdef FIFO_PAGING
 +  struct fifo_paging_data metadata;
 +#endif
@@ -1049,7 +1061,7 @@ index bfe61b7..bf3848e 100644
  {
    struct inode *ip, *dp;
 diff --git a/trap.c b/trap.c
-index 41c66eb..f98bdc7 100644
+index 41c66eb..ace62ef 100644
 --- a/trap.c
 +++ b/trap.c
 @@ -53,6 +53,7 @@ trap(struct trapframe *tf)
@@ -1065,7 +1077,7 @@ index 41c66eb..f98bdc7 100644
      break;
  
 -  //PAGEBREAK: 13
-+  // [UPOBIR]
++  // [UPOBIR] handling pagefault
 +  case T_PGFLT:{
 +      uint addr = rcr2();
 +      if(pagefault(myproc(), addr) < 0){
@@ -1100,7 +1112,7 @@ index a7e7d2c..077bbe9 100644
      base.s.ptr = freep = prevp = &base;
      base.s.size = 0;
 diff --git a/vm.c b/vm.c
-index 7134cff..ed8a6c1 100644
+index 7134cff..14f1b8e 100644
 --- a/vm.c
 +++ b/vm.c
 @@ -32,7 +32,7 @@ seginit(void)
@@ -1127,7 +1139,7 @@ index 7134cff..ed8a6c1 100644
 -copyuvm(pde_t *pgdir, uint sz)
 +copyuvm(struct proc* p, uint sz)
  {
-+  // [UPOBIR]
++  // [UPOBIR] declaring pgdir to match with previous variable
 +  pde_t* pgdir = p->pgdir;
 +
    pde_t *d;
@@ -1140,7 +1152,7 @@ index 7134cff..ed8a6c1 100644
 -    if(!(*pte & PTE_P))
 -      panic("copyuvm: page not present");
 +    if(!(*pte & PTE_P)){
-+      // [UPOBIR]
++      // [UPOBIR] when copying parent memory, page in memoery if not present
 +      //panic("copyuvm: page not present");
 +      if(pagefault(p, i) == -1)
 +        panic("copyuvm: page fault failed");
