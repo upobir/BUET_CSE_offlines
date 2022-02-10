@@ -53,7 +53,7 @@ index 09d790c..91052b0 100644
  dist:
  	rm -rf dist
 diff --git a/defs.h b/defs.h
-index 82fb982..50dedcd 100644
+index 82fb982..927d6b8 100644
 --- a/defs.h
 +++ b/defs.h
 @@ -52,6 +52,11 @@ struct inode*   nameiparent(char*, char*);
@@ -86,37 +86,47 @@ index 82fb982..50dedcd 100644
  // spinlock.c
  void            acquire(struct spinlock*);
  void            getcallerpcs(void*, uint*);
-@@ -180,11 +192,23 @@ int             deallocuvm(pde_t*, uint, uint);
+@@ -175,16 +187,31 @@ void            seginit(void);
+ void            kvmalloc(void);
+ pde_t*          setupkvm(void);
+ char*           uva2ka(pde_t*, char*);
+-int             allocuvm(pde_t*, uint, uint);
++// [UPOBIR]
++int             allocuvm(struct proc* p, pde_t*, uint, uint);
+ int             deallocuvm(pde_t*, uint, uint);
  void            freevm(pde_t*);
  void            inituvm(pde_t*, char*, uint);
  int             loaduvm(pde_t*, char*, struct inode*, uint, uint);
 -pde_t*          copyuvm(pde_t*, uint);
 +// [UPOBIR] copyuvm takes process now
-+pde_t*          copyuvm(struct proc* p, uint);
++pde_t*          copyuvm(struct proc* p, struct proc* pp, pde_t* pgdir, uint);
  void            switchuvm(struct proc*);
  void            switchkvm(void);
  int             copyout(pde_t*, uint, void*, uint);
- void            clearpteu(pde_t *pgdir, char *uva);
-+// [UPOBIR] walkpgdir is public now
+-void            clearpteu(pde_t *pgdir, char *uva);
++// [UPOBIR] walkpgdir is public now anbd clearpteu takes process
++void            clearpteu(struct proc* p, pde_t *pgdir, char *uva);
 +pte_t*          walkpgdir(pde_t *pgdir, const void *va, int alloc);
 +
 +// [UPOBIR] paging.c function
 +// paging.c
-+void            addPageRange(struct proc* p, uint from, uint to);  
-+void            removePageRange(struct proc* p, uint from, uint to);
++void            addPageRange(struct proc* p, pde_t* pgdir, uint from, uint to);  
++void            removePageRange(struct proc* p, pde_t* pgdir, uint from, uint to);
 +void            dumpMetadata(struct proc* p);
 +int             pagefault(struct proc* p, uint addr);
 +void            updateAgingMetadata(struct proc* p);
 +void            clearMetadata(struct proc* p);
++void            addPage(struct proc* p, pde_t* pgdir, int pgnum);
++void            removePage(struct proc* p, pde_t* pgdir, int pgnum);
  
  // number of elements in fixed-size array
  #define NELEM(x) (sizeof(x)/sizeof((x)[0]))
 diff --git a/dummy.c b/dummy.c
 new file mode 100644
-index 0000000..57e9d02
+index 0000000..ebb191b
 --- /dev/null
 +++ b/dummy.c
-@@ -0,0 +1,68 @@
+@@ -0,0 +1,77 @@
 +// [UPOBIR] dummy program to test paging
 +
 +#include "types.h"
@@ -126,104 +136,123 @@ index 0000000..57e9d02
 +void
 +dummy(int proc_count)
 +{
++    // declare size and allocate memory
 +    int sz = 4096 * 17; 
 +    int* mem = (int*)malloc(sz);
 +
-+    int pid;
++    // create children each with different k
 +    int k = 13;
-+
 +    for(int i = 1; k == 13 && i<proc_count; i++){
++        int pid;
 +        if((pid = fork()) == 0)
 +            k = 13 + i;
 +    }
 +
++    // fill memory with multiple of k
 +    for(int i = 0; i<sz/4; i++){
 +        mem[i] = k * i;  
 +    }
 +
++    // sleep
 +    sleep(250);
 +
++    // many pagefaults should have happened by now, check if memory contents are correct
 +    int ok = 1;
-+    for(int i = 0; i<sz/4; i++){
++    for(int i = 0; i < sz/4; i++){
 +        if(mem[i] != k*i)
 +            ok = 0;
 +    }
 +
++    // sleep again
 +    sleep(250);
 +
++    // print success
 +    if(!ok)
-+        printf(2, "failed\n");
++        printf(1, "failed #%d\n", k-13);
 +    else
-+        printf(2, "success\n");
++        printf(1, "success #%d\n", k-13);
 +
++    // free memory
 +    free((void*)mem);
 +
++    // parent should wait for children
 +    for(int i = 1; k == 13 && i<proc_count; i++)
 +        wait();
 +}
 +
-+void rec(int x, int y){
-+    printf(2, "hello\n");
-+    rec(x+1, y+1);
-+    printf(2, "bye\n");
-+}
 +
 +void nullpoint(){
 +    int* x = (int*) 0;
 +    printf(1, "null pointer: %d\n", *x);
 +}
 +
++
 +int
 +main(int argc, char *argv[])
 +{
++    // default process count is 1
 +    int proc_count = 1;
++
++    // if arguments are passed, update process count
 +    if(argc > 1){
 +        proc_count = atoi(argv[1]);
 +    }
++
++    // call function
 +    dummy(proc_count);
-+    //rec(0, 0);
 +    //nullpoint();
++
 +    exit();
 +}
 diff --git a/exec.c b/exec.c
-index b40134f..49f2a7f 100644
+index b40134f..ade5b6a 100644
 --- a/exec.c
 +++ b/exec.c
-@@ -49,6 +49,7 @@ exec(char *path, char **argv)
-       goto bad;
-     if(ph.vaddr + ph.memsz < ph.vaddr)
-       goto bad;
-+    //cprintf("exec: %d\n", ph.vaddr);
-     if((sz = allocuvm(pgdir, sz, ph.vaddr + ph.memsz)) == 0)
-       goto bad;
-     if(ph.vaddr % PGSIZE != 0)
-@@ -66,6 +67,9 @@ exec(char *path, char **argv)
-   if((sz = allocuvm(pgdir, sz, sz + 2*PGSIZE)) == 0)
+@@ -38,6 +38,11 @@ exec(char *path, char **argv)
+   if((pgdir = setupkvm()) == 0)
      goto bad;
-   clearpteu(pgdir, (char*)(sz - 2*PGSIZE));
-+  // [UPOBIR] make 0th page inaccessible to protect null pointer
-+  clearpteu(pgdir, (char*)0);
-+
-   sp = sz;
  
-   // Push argument strings, prepare rest of stack in ustack.
-@@ -95,11 +99,19 @@ exec(char *path, char **argv)
- 
-   // Commit to the user image.
-   oldpgdir = curproc->pgdir;
 +  // [UPOBIR] if not init, remove old pages
 +  if(curproc->pid != 1){
 +      clearMetadata(curproc);
 +  }
-   curproc->pgdir = pgdir;
-   curproc->sz = sz;
++
+   // Load program into memory.
+   sz = 0;
+   for(i=0, off=elf.phoff; i<elf.phnum; i++, off+=sizeof(ph)){
+@@ -49,7 +54,8 @@ exec(char *path, char **argv)
+       goto bad;
+     if(ph.vaddr + ph.memsz < ph.vaddr)
+       goto bad;
+-    if((sz = allocuvm(pgdir, sz, ph.vaddr + ph.memsz)) == 0)
++    //cprintf("exec: %d\n", ph.vaddr);
++    if((sz = allocuvm(curproc, pgdir, sz, ph.vaddr + ph.memsz)) == 0)
+       goto bad;
+     if(ph.vaddr % PGSIZE != 0)
+       goto bad;
+@@ -63,9 +69,12 @@ exec(char *path, char **argv)
+   // Allocate two pages at the next page boundary.
+   // Make the first inaccessible.  Use the second as the user stack.
+   sz = PGROUNDUP(sz);
+-  if((sz = allocuvm(pgdir, sz, sz + 2*PGSIZE)) == 0)
++  if((sz = allocuvm(curproc, pgdir, sz, sz + 2*PGSIZE)) == 0)
+     goto bad;
+-  clearpteu(pgdir, (char*)(sz - 2*PGSIZE));
++  clearpteu(curproc, pgdir, (char*)(sz - 2*PGSIZE));
++  // [UPOBIR] make 0th page inaccessible to protect null pointer
++  clearpteu(curproc, pgdir, (char*)0);
++
+   sp = sz;
+ 
+   // Push argument strings, prepare rest of stack in ustack.
+@@ -100,6 +109,10 @@ exec(char *path, char **argv)
    curproc->tf->eip = elf.entry;  // main
    curproc->tf->esp = sp;
    switchuvm(curproc);
 +  // [UPOBIR] add new process pages
-+  if(curproc->pid != 1){
-+      addPageRange(curproc, 0, curproc->sz);
-+  }
++  //if(curproc->pid != 1){
++  //    //addPageRange(curproc, 0, curproc->sz);
++  //}
    freevm(oldpgdir);
    return 0;
  
@@ -404,10 +433,10 @@ index a82d8e2..d6b4c8c 100644
  #endif
 diff --git a/paging.c b/paging.c
 new file mode 100644
-index 0000000..86ddbfc
+index 0000000..a7a4272
 --- /dev/null
 +++ b/paging.c
-@@ -0,0 +1,398 @@
+@@ -0,0 +1,408 @@
 +// [UPOBIR] paging functions
 +
 +#include "types.h"
@@ -506,9 +535,9 @@ index 0000000..86ddbfc
 +#endif
 +
 +void
-+writePageToSwapFile(struct proc* p, int pgnum, int free_file_loc){
++writePageToSwapFile(struct proc* p, pde_t* pgdir, int pgnum, int free_file_loc){
 +  pte_t* pte;
-+  if((pte = walkpgdir(p->pgdir, (void*) (pgnum * PGSIZE), 0)) == 0)
++  if((pte = walkpgdir(pgdir, (void*) (pgnum * PGSIZE), 0)) == 0)
 +    panic("writePageToSwapFile: walkpgdir failed");
 +
 +  // write page contents to swap file, in chosen filelocation
@@ -524,7 +553,7 @@ index 0000000..86ddbfc
 +
 +#ifdef FIFO_PAGING
 +void 
-+addFifoPage(struct proc* p, int pgnum){
++addFifoPage(struct proc* p, pde_t* pgdir, int pgnum){
 +  // find first free position in metadata in_phy_queue 
 +  int free_pos = p->metadata.start;
 +  while(1){
@@ -550,7 +579,7 @@ index 0000000..86ddbfc
 +    }
 +
 +    // get pte for that non empty page
-+    writePageToSwapFile(p, p->metadata.in_phy_queue[free_pos], free_file_loc);
++    writePageToSwapFile(p, pgdir, p->metadata.in_phy_queue[free_pos], free_file_loc);
 +    p->metadata.in_file_pages[free_file_loc] = p->metadata.in_phy_queue[free_pos];
 +
 +    // update start of queue
@@ -566,7 +595,7 @@ index 0000000..86ddbfc
 +
 +#ifdef AGING_PAGING
 +void 
-+addAgingPage(struct proc* p, int pgnum){
++addAgingPage(struct proc* p, pde_t* pgdir, int pgnum){
 +  // find first free position in metadata in_phy_queue 
 +  int free_pos;
 +  int min_index = 0;
@@ -588,7 +617,7 @@ index 0000000..86ddbfc
 +    }
 +
 +    // get pte for that non empty page
-+    writePageToSwapFile(p, p->metadata.in_phy[free_pos], free_file_loc);
++    writePageToSwapFile(p, pgdir, p->metadata.in_phy[free_pos], free_file_loc);
 +    p->metadata.in_file_pages[free_file_loc] = p->metadata.in_phy[free_pos];
 +  }
 +
@@ -599,15 +628,15 @@ index 0000000..86ddbfc
 +#endif
 +
 +void 
-+addPage(struct proc* p, int pgnum){
++addPage(struct proc* p, pde_t* pgdir, int pgnum){
 +  //cprintf("adding %s:%d: %d\n", p->name, p->pid, pgnum);
 +
 +#ifdef FIFO_PAGING
-+  addFifoPage(p, pgnum);
++  addFifoPage(p, pgdir, pgnum);
 +#endif
 +
 +#ifdef AGING_PAGING
-+  addAgingPage(p, pgnum);
++  addAgingPage(p, pgdir, pgnum);
 +#endif
 +
 +  return;
@@ -615,7 +644,7 @@ index 0000000..86ddbfc
 +
 +#ifdef FIFO_PAGING
 +void
-+removeFifoPage(struct proc* p, int pgnum){
++removeFifoPage(struct proc* p, pde_t* pgdir, int pgnum){
 +  // find if it is in queue
 +  int pos = p->metadata.start;
 +  while(1){
@@ -658,7 +687,7 @@ index 0000000..86ddbfc
 +
 +#ifdef AGING_PAGING
 +void
-+removeAgingPage(struct proc* p, int pgnum){
++removeAgingPage(struct proc* p, pde_t* pgdir, int pgnum){
 +  // find if it is in physical pages
 +  int pos;
 +  for(pos = 0; pos < MAX_PSYC_PAGES; pos++){
@@ -683,15 +712,15 @@ index 0000000..86ddbfc
 +#endif
 +
 +void
-+removePage(struct proc* p, int pgnum){
++removePage(struct proc* p, pde_t* pgdir, int pgnum){
 +  //cprintf("removing %s:%d: %d\n", p->name, p->pid, pgnum);
 +
 +#ifdef FIFO_PAGING
-+  removeFifoPage(p, pgnum);
++  removeFifoPage(p, pgdir, pgnum);
 +#endif
 +
 +#ifdef AGING_PAGING
-+  removeAgingPage(p, pgnum);
++  removeAgingPage(p, pgdir, pgnum);
 +#endif
 +
 +  
@@ -699,7 +728,7 @@ index 0000000..86ddbfc
 +
 +// half range [from, to)
 +void
-+addPageRange(struct proc* p, uint from, uint to){  
++addPageRange(struct proc* p, pde_t* pgdir, uint from, uint to){  
 +  if (from > to){
 +    panic("addPageRange: from > to");
 +  }
@@ -709,13 +738,13 @@ index 0000000..86ddbfc
 +  for(uint a = PGROUNDUP(from); a < to; a += PGSIZE){
 +    int pgnum = a>>12;
 +    pte_t* pte;
-+    if((pte = walkpgdir(p->pgdir, (void*) a, 0)) == 0){
++    if((pte = walkpgdir(pgdir, (void*) a, 0)) == 0){
 +      panic("addPageRange: walkpgdir failed");
 +    }
 +    if(!(*pte & PTE_U))
 +      continue;
 +
-+    addPage(p, pgnum);
++    addPage(p, pgdir, pgnum);
 +  }
 +
 +  return;
@@ -723,7 +752,7 @@ index 0000000..86ddbfc
 +
 +// half range [from, to)
 +void
-+removePageRange(struct proc* p, uint from, uint to){
++removePageRange(struct proc* p, pde_t* pgdir, uint from, uint to){
 +  if (from > to){
 +    panic("removePageRange: from > to");
 +  }
@@ -733,14 +762,14 @@ index 0000000..86ddbfc
 +  for(uint a = PGROUNDUP(from); a < to; a += PGSIZE){
 +    int pgnum = a >> 12;
 +    pte_t* pte;
-+    if((pte = walkpgdir(p->pgdir, (void*) a, 0)) == 0){
++    if((pte = walkpgdir(pgdir, (void*) a, 0)) == 0){
 +      panic("removePageRane: walkpgdir failed");
 +    }
 +
 +    if(!(*pte & PTE_U))
 +      continue;
 +      
-+    removePage(p, pgnum);
++    removePage(p, pgdir, pgnum);
 +  }
 +
 +}
@@ -761,8 +790,12 @@ index 0000000..86ddbfc
 +*/
 +
 +// handle page fault and tell if it's a user page
++int pagefault_count = 0;
++
 +int
 +pagefault(struct proc* p, uint addr){
++  pagefault_count ++;
++
 +  int pgnum = addr >> 12; 
 +  //cprintf("\npagefault: %d\n", pgnum);
 +
@@ -771,15 +804,21 @@ index 0000000..86ddbfc
 +  //cprintf("\n\n\n%d\n", pgnum);
 +  //dumpMetadata(p);
 +  pte_t* pte;
-+  if((pte = walkpgdir(p->pgdir, (void*) (pgnum * PGSIZE), 0)) == 0)
++  if((pte = walkpgdir(p->pgdir, (void*) (pgnum * PGSIZE), 0)) == 0){
++      dumpMetadata(p);
 +    return -1;
++  }
 +
 +  //cprintf("checking: %p\n", *pte);
-+  if(*pte & PTE_P)
++  if(*pte & PTE_P){
++      dumpMetadata(p);
 +    return -1;
++  }
 +
-+  if(!(*pte & PTE_PG))
++  if(!(*pte & PTE_PG)){
++      dumpMetadata(p);
 +    return -1;
++  }
 +
 +  int file_location;
 +  for(file_location = 0; file_location<MAX_TOTAL_PAGES; file_location++){
@@ -802,13 +841,13 @@ index 0000000..86ddbfc
 +  *pte |= PTE_P;
 +  *pte &= ~PTE_PG;
 +
-+  addPage(p, pgnum);
++  addPage(p, p->pgdir, pgnum);
 +  //dumpMetadata(p);
 +  return 0;
 +}
 diff --git a/paging.h b/paging.h
 new file mode 100644
-index 0000000..16f1e16
+index 0000000..aad2deb
 --- /dev/null
 +++ b/paging.h
 @@ -0,0 +1,24 @@
@@ -817,7 +856,7 @@ index 0000000..16f1e16
 +#ifndef PAGING_H
 +#define PAGING_H
 +
-+#define AGING_PAGING
++#define FIFO_PAGING
 +
 +struct fifo_paging_data {
 +    int in_phy_queue[MAX_PSYC_PAGES];
@@ -837,7 +876,7 @@ index 0000000..16f1e16
 +
 +#endif // PAGING_H 
 diff --git a/proc.c b/proc.c
-index 806b1b1..f0def96 100644
+index 806b1b1..c6b1854 100644
 --- a/proc.c
 +++ b/proc.c
 @@ -102,6 +102,9 @@ found:
@@ -861,15 +900,16 @@ index 806b1b1..f0def96 100644
    sz = curproc->sz;
 +  //cprintf("growproc: %d\n", sz % 4096 == 0);
    if(n > 0){
-     if((sz = allocuvm(curproc->pgdir, sz, sz + n)) == 0)
+-    if((sz = allocuvm(curproc->pgdir, sz, sz + n)) == 0)
++    if((sz = allocuvm(curproc, curproc->pgdir, sz, sz + n)) == 0)
        return -1;
 +    // [UPOBIR] add page range when growing memory
-+    addPageRange(curproc, curproc->sz, sz);
++    //addPageRange(curproc, curproc->sz, sz);
    } else if(n < 0){
      if((sz = deallocuvm(curproc->pgdir, sz, sz + n)) == 0)
        return -1;
 +    // [UPOBIR] remove page range when shrinking memory
-+    removePageRange(curproc, sz, curproc->sz);
++    removePageRange(curproc, curproc->pgdir, sz, curproc->sz);
    }
    curproc->sz = sz;
 +  //cprintf("growproc: %d\n", sz % 4096 == 0);
@@ -878,27 +918,32 @@ index 806b1b1..f0def96 100644
    return 0;
  }
  
-@@ -190,7 +201,7 @@ fork(void)
+@@ -190,10 +201,15 @@ fork(void)
    }
  
    // Copy process state from proc.
 -  if((np->pgdir = copyuvm(curproc->pgdir, curproc->sz)) == 0){
-+  if((np->pgdir = copyuvm(curproc, curproc->sz)) == 0){
++  // [UPOBIR] creating swap file and adding pages to metadata
++  createSwapFile(np);
++  //addPageRange(np, 0, np->sz);
++
++  if((np->pgdir = copyuvm(np, curproc, curproc->pgdir, curproc->sz)) == 0){
      kfree(np->kstack);
      np->kstack = 0;
      np->state = UNUSED;
-@@ -210,6 +221,10 @@ fork(void)
++    removeSwapFile(np);
+     return -1;
+   }
+   np->sz = curproc->sz;
+@@ -210,6 +226,7 @@ fork(void)
  
    safestrcpy(np->name, curproc->name, sizeof(curproc->name));
  
-+  // [UPOBIR] creating swap file and adding pages to metadata
-+  createSwapFile(np);
-+  addPageRange(np, 0, np->sz);
 +
    pid = np->pid;
  
    acquire(&ptable.lock);
-@@ -265,6 +280,7 @@ exit(void)
+@@ -265,6 +282,7 @@ exit(void)
    curproc->state = ZOMBIE;
    sched();
    panic("zombie exit");
@@ -906,7 +951,7 @@ index 806b1b1..f0def96 100644
  }
  
  // Wait for a child process to exit and return its pid.
-@@ -285,6 +301,8 @@ wait(void)
+@@ -285,6 +303,8 @@ wait(void)
          continue;
        havekids = 1;
        if(p->state == ZOMBIE){
@@ -915,7 +960,7 @@ index 806b1b1..f0def96 100644
          // Found one.
          pid = p->pid;
          kfree(p->kstack);
-@@ -296,6 +314,9 @@ wait(void)
+@@ -296,6 +316,9 @@ wait(void)
          p->killed = 0;
          p->state = UNUSED;
          release(&ptable.lock);
@@ -925,7 +970,7 @@ index 806b1b1..f0def96 100644
          return pid;
        }
      }
-@@ -500,6 +521,24 @@ kill(int pid)
+@@ -500,6 +523,26 @@ kill(int pid)
  // Print a process listing to console.  For debugging.
  // Runs when user types ^P on console.
  // No lock to avoid wedging a stuck machine further.
@@ -947,10 +992,12 @@ index 806b1b1..f0def96 100644
 +}
 +
 +
++extern int pagefault_count;
++
  void
  procdump(void)
  {
-@@ -530,5 +569,48 @@ procdump(void)
+@@ -530,5 +573,50 @@ procdump(void)
          cprintf(" %p", pc[i]);
      }
      cprintf("\n");
@@ -998,6 +1045,8 @@ index 806b1b1..f0def96 100644
 +    }
 +    dumpMetadata(p);
    }
++
++  cprintf("\npage fault count: %d\n", pagefault_count);
  }
 diff --git a/proc.h b/proc.h
 index 1647114..aa55d56 100644
@@ -1112,7 +1161,7 @@ index a7e7d2c..077bbe9 100644
      base.s.ptr = freep = prevp = &base;
      base.s.size = 0;
 diff --git a/vm.c b/vm.c
-index 7134cff..14f1b8e 100644
+index 7134cff..f7eea9d 100644
 --- a/vm.c
 +++ b/vm.c
 @@ -32,7 +32,7 @@ seginit(void)
@@ -1132,20 +1181,54 @@ index 7134cff..14f1b8e 100644
      // The permissions here are overly generous, but they can
      // be further restricted by the permissions in the page table
      // entries, if necessary.
-@@ -313,8 +314,11 @@ clearpteu(pde_t *pgdir, char *uva)
+@@ -219,7 +220,7 @@ loaduvm(pde_t *pgdir, char *addr, struct inode *ip, uint offset, uint sz)
+ // Allocate page tables and physical memory to grow process from oldsz to
+ // newsz, which need not be page aligned.  Returns new size or 0 on error.
+ int
+-allocuvm(pde_t *pgdir, uint oldsz, uint newsz)
++allocuvm(struct proc* p, pde_t* pgdir, uint oldsz, uint newsz)
+ {
+   char *mem;
+   uint a;
+@@ -244,6 +245,8 @@ allocuvm(pde_t *pgdir, uint oldsz, uint newsz)
+       kfree(mem);
+       return 0;
+     }
++    if(p->pid != 1)
++      addPage(p, pgdir, a/PGSIZE);
+   }
+   return newsz;
+ }
+@@ -300,7 +303,7 @@ freevm(pde_t *pgdir)
+ // Clear PTE_U on a page. Used to create an inaccessible
+ // page beneath the user stack.
+ void
+-clearpteu(pde_t *pgdir, char *uva)
++clearpteu(struct proc* p, pde_t *pgdir, char *uva)
+ {
+   pte_t *pte;
+ 
+@@ -308,12 +311,18 @@ clearpteu(pde_t *pgdir, char *uva)
+   if(pte == 0)
+     panic("clearpteu");
+   *pte &= ~PTE_U;
++
++  if(!(*pte & PTE_P)){
++    cprintf("doing\n");
++    pagefault(p, (uint) uva);
++  }
++  removePage(p, pgdir, ((uint) uva) / PGSIZE);
+ }
+ 
  // Given a parent process's page table, create a copy
  // of it for a child.
  pde_t*
 -copyuvm(pde_t *pgdir, uint sz)
-+copyuvm(struct proc* p, uint sz)
++copyuvm(struct proc* p, struct proc* pp, pde_t* pgdir, uint sz)
  {
-+  // [UPOBIR] declaring pgdir to match with previous variable
-+  pde_t* pgdir = p->pgdir;
-+
    pde_t *d;
    pte_t *pte;
-   uint pa, i, flags;
-@@ -325,8 +329,15 @@ copyuvm(pde_t *pgdir, uint sz)
+@@ -325,8 +334,16 @@ copyuvm(pde_t *pgdir, uint sz)
    for(i = 0; i < sz; i += PGSIZE){
      if((pte = walkpgdir(pgdir, (void *) i, 0)) == 0)
        panic("copyuvm: pte should exist");
@@ -1154,12 +1237,23 @@ index 7134cff..14f1b8e 100644
 +    if(!(*pte & PTE_P)){
 +      // [UPOBIR] when copying parent memory, page in memoery if not present
 +      //panic("copyuvm: page not present");
-+      if(pagefault(p, i) == -1)
++      if(pagefault(pp, i) == -1){
 +        panic("copyuvm: page fault failed");
++      }
 +
 +      if((pte = walkpgdir(pgdir, (void *) i, 0)) == 0)
-+        panic("copyuvm: paged in page should exist");
++        panic("copyuvm: pagetable should exist");
 +    }
      pa = PTE_ADDR(*pte);
      flags = PTE_FLAGS(*pte);
      if((mem = kalloc()) == 0)
+@@ -336,6 +353,9 @@ copyuvm(pde_t *pgdir, uint sz)
+       kfree(mem);
+       goto bad;
+     }
++
++    if(*pte & PTE_U)
++      addPage(p, d, i/PGSIZE);
+   }
+   return d;
+ 
