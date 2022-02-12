@@ -433,10 +433,10 @@ index a82d8e2..d6b4c8c 100644
  #endif
 diff --git a/paging.c b/paging.c
 new file mode 100644
-index 0000000..a7a4272
+index 0000000..77b4667
 --- /dev/null
 +++ b/paging.c
-@@ -0,0 +1,408 @@
+@@ -0,0 +1,411 @@
 +// [UPOBIR] paging functions
 +
 +#include "types.h"
@@ -549,6 +549,7 @@ index 0000000..a7a4272
 +  // change flags of written file and write to metadata in_file_pages
 +  *pte &= ~PTE_P;
 +  *pte |= PTE_PG;
++  
 +}
 +
 +#ifdef FIFO_PAGING
@@ -840,6 +841,8 @@ index 0000000..a7a4272
 +   
 +  *pte |= PTE_P;
 +  *pte &= ~PTE_PG;
++  
++  lcr3(V2P(p->pgdir));
 +
 +  addPage(p, p->pgdir, pgnum);
 +  //dumpMetadata(p);
@@ -847,7 +850,7 @@ index 0000000..a7a4272
 +}
 diff --git a/paging.h b/paging.h
 new file mode 100644
-index 0000000..aad2deb
+index 0000000..16f1e16
 --- /dev/null
 +++ b/paging.h
 @@ -0,0 +1,24 @@
@@ -856,7 +859,7 @@ index 0000000..aad2deb
 +#ifndef PAGING_H
 +#define PAGING_H
 +
-+#define FIFO_PAGING
++#define AGING_PAGING
 +
 +struct fifo_paging_data {
 +    int in_phy_queue[MAX_PSYC_PAGES];
