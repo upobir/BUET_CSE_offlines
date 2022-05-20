@@ -8,13 +8,13 @@ if __name__ == "__main__":
     end_time : float
 
     # take input
-    plaintext : bytearray = bytearray(input("Plain Text:\n"), 'utf-8')
+    plaintext : bytearray = bytearray(input("Plain Text:\n"), 'latin-1')
     print(plaintext.hex(), '[HEX]')
     print()
 
     while True:
         # take key
-        key : bytearray = bytearray(input("Key:\n"), 'utf-8')
+        key : bytearray = bytearray(input("Key:\n"), 'latin-1')
         print(key.hex(), '[HEX]')
 
         # create AES, key scheduling
@@ -44,14 +44,13 @@ if __name__ == "__main__":
     # show cipher text
     print("Cipher Text:")
     print(ciphertext.hex(), '[HEX]')
-    print(str(ciphertext, 'utf-8'))
+    # print(str(ciphertext.replace(b'\x99', b' '), 'latin-1')) # TODO fix
     print()
 
     # show decipher text
-    
     print("Deciphererd Text:")
     print(deciphered_text.hex(), '[HEX]')
-    print(str(deciphered_text, 'utf-8'))
+    print(str(deciphered_text, 'latin-1'))
     print()
 
     # show execution time
