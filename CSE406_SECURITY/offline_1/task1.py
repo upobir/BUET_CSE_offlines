@@ -3,35 +3,41 @@ import time
 
 
 if __name__ == "__main__":
-    # take input
-    plaintext : bytearray = bytes(input("Plain Text:\n"), 'utf-8')
-    print(plaintext.hex(), '[HEX]')
-    print()
-
-    # take key
-    key : bytearray = bytes(input("Key:\n"), 'utf-8')
-    print(key.hex(), '[HEX]')
-    print()
-
     # time stuff
     start_time : float
     end_time : float
 
-    # create AES, key scheduling
-    start_time = time.time()
-    aes : AES = AES(key)
-    end_time   = time.time()
-    key_scheduling_time : float = end_time - start_time
+    # take input
+    plaintext : bytearray = bytearray(input("Plain Text:\n"), 'utf-8')
+    print(plaintext.hex(), '[HEX]')
+    print()
+
+    while True:
+        # take key
+        key : bytearray = bytearray(input("Key:\n"), 'utf-8')
+        print(key.hex(), '[HEX]')
+
+        # create AES, key scheduling
+        start_time = time.time()
+        try:
+            aes : AES = AES(key)
+        except Exception as e:
+            print(e)
+            continue
+        end_time   = time.time()
+        key_scheduling_time : float = end_time - start_time
+        break
+    print()
 
     # encrypt
     start_time = time.time()
-    ciphertext : str = aes.encrypt(plaintext)
+    ciphertext : bytearray = aes.encrypt(plaintext)
     end_time   = time.time()
     encryption_time : float = end_time - start_time
 
     # decrypt
     start_time = time.time()
-    deciphered_text : str = aes.decrypt(ciphertext)
+    deciphered_text : bytearray = aes.decrypt(ciphertext)
     end_time   = time.time()
     decryption_time : float = end_time - start_time
 
