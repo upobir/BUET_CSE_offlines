@@ -1,4 +1,3 @@
-from pydoc import plain
 from BitVector import *
 from typing import List, Tuple
 
@@ -92,9 +91,9 @@ class AES:
             words.append(word)
 
         round_keys : List[BitVector] = []
-        for i in range(0, len(words), self.NUM_WORDS):
+        for i in range(0, len(words), 4):
             round_key : BitVector = BitVector(size=0)
-            for j in range(self.NUM_WORDS):
+            for j in range(4):
                 round_key += words[i+j]
 
             round_keys.append(round_key)

@@ -20,7 +20,7 @@ if __name__ == "__main__":
         # create RSA, key pair generation
         start_time = time.time()
         try:
-            rsa : RSA = RSA(key_length)
+            rsa : RSA = RSA.generate_random(key_length)
         except Exception as e:
             print(e)
             continue
