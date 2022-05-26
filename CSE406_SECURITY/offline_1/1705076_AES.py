@@ -1,12 +1,10 @@
 from BitVector import *
-from typing import List, Tuple
+from typing import List, Tuple, Dict
 
 # check other AES
 
 class AES:
-    KEY_LENGTH : int = 16
-    NUM_ROUNDS : int = 10
-    NUM_WORDS : int = 4
+    ROUND_DICT : Dict[int, int] = {16 : 10, 24 : 12, 32 : 14}
     BLOCK_SIZE : int = 128
     BLOCK_SIZE_IN_BYTES : int = 16
     AES_MODULO : BitVector = BitVector(bitstring='100011011')
@@ -61,8 +59,10 @@ class AES:
     ]
 
     def __init__(self, key : bytearray):
-        if len(key) != self.KEY_LENGTH:
+        if len(key) != 16 and len(key) != 24 and len(key) != 32:
             raise Exception("Invalid Key Length!")
+
+        self.num_rounds : int = self.ROUND_DICT[len(key)]
 
         self.round_keys : List[BitVector] = self.key_schedule(key)
 
@@ -72,21 +72,23 @@ class AES:
         rc : BitVector = BitVector(intVal=0x01, size=8)
         x  : BitVector = BitVector(intVal=0x02, size=8)
 
-        for i in range((self.NUM_ROUNDS+1) * self.NUM_WORDS):
+        num_words : int = len(key) // 4
+
+        for i in range((self.num_rounds+1) * 4):
             word : BitVector
-            if i < self.NUM_WORDS:
+            if i < num_words:
                 word = BitVector(rawbytes = key[4*i:4*i+4])
 
-            elif i >= self.NUM_WORDS and i % self.NUM_WORDS == 0:
+            elif i >= num_words and i % num_words == 0:
                 rcon : BitVector = rc + BitVector(size=24)
-                word = words[i-self.NUM_WORDS] ^ self.SubWord(self.RotWord(words[i-1])) ^ rcon
+                word = words[i-num_words] ^ self.SubWord(self.RotWord(words[i-1])) ^ rcon
                 rc = rc.gf_multiply_modular(x, self.AES_MODULO, 8)
 
-            elif i >= self.NUM_WORDS and self.NUM_WORDS > 6 and i % self.NUM_WORDS == 4:
-                word = words[i-self.NUM_WORDS] ^ self.SubWord(words[i-1])
+            elif i >= num_words and num_words > 6 and i % num_words == 4:
+                word = words[i-num_words] ^ self.SubWord(words[i-1])
 
             else:
-                word = words[i-self.NUM_WORDS] ^ words[i-1]
+                word = words[i-num_words] ^ words[i-1]
 
             words.append(word)
 
@@ -169,16 +171,23 @@ class AES:
 
     def encrypt_block(self, block : BitVector) -> BitVector:
         block ^= self.round_keys[0]
+        # print('>', block.get_bitvector_in_hex())
 
-        for i in range(1, self.NUM_ROUNDS):
+        for i in range(1, self.num_rounds):
             block = self.SubWord(block)
+            # print('>>', block.get_bitvector_in_hex())
             block = self.ShiftRows(block)
+            # print('>>', block.get_bitvector_in_hex())
             block = self.MixColumns(block)
+            # print('>>', block.get_bitvector_in_hex())
+            # print('key', self.round_keys[i].get_bitvector_in_hex())
             block ^= self.round_keys[i]
+            # print('>', block.get_bitvector_in_hex())
 
         block = self.SubWord(block)
         block = self.ShiftRows(block)
         block ^= self.round_keys[-1]
+        # print('>', block.get_bitvector_in_hex())
 
         return block
 
@@ -198,10 +207,9 @@ class AES:
         block ^= self.round_keys[-1]
         block = self.ShiftRowsInv(block)
         block = self.SubWordInv(block)
-        
 
-        for i in range(1, self.NUM_ROUNDS):
-            block ^= self.round_keys[self.NUM_ROUNDS - i]
+        for i in range(1, self.num_rounds):
+            block ^= self.round_keys[self.num_rounds - i]
             block = self.MixColumnsInv(block)
             block = self.ShiftRowsInv(block)
             block = self.SubWordInv(block)
@@ -209,7 +217,3 @@ class AES:
         block ^= self.round_keys[0]
 
         return block
-
-
-# Two One Nine Two
-# Thats my Kung Fu

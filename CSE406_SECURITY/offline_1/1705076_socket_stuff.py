@@ -1,4 +1,4 @@
-import socket
+from socket import socket
 
 def send_bytes(sock : socket, b : bytes) -> None:
     sock.send(len(b).to_bytes(4, 'little'))

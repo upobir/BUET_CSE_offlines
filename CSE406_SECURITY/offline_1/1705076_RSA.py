@@ -1,16 +1,17 @@
 from typing import Tuple
 from BitVector import *
 from math import gcd
+from random import randint
 
 class RSA:
     def __init__(self, key_length: int, n : int, e : int, d : int):
-        if key_length % 8 != 0:
+        if key_length % 8 != 0 or n == 8:
             raise Exception("Invalid Key Length!")
 
         self.key_length : int = key_length
         self.n : int = n
-        self.e : BitVector = BitVector(intVal=e)
-        self.d : BitVector = BitVector(intVal=d)
+        self.e : int = e
+        self.d : int = d
 
         if self.n <= 255 : 
             raise Exception("n too small")
@@ -38,7 +39,7 @@ class RSA:
     def generate_prime(cls, length: int) -> int:
         while True:
             candidate : BitVector = BitVector(intVal=0).gen_random_bits(length)
-            if candidate.test_for_primality():   # TODO change
+            if candidate.test_for_primality():
                 return candidate.int_val()
 
     @classmethod
@@ -51,13 +52,13 @@ class RSA:
 
     @classmethod
     def generate_keys(cls, p : int, q : int) -> Tuple[int, int]:
-        e : int = 100
+        n : int = p * q
         phi_n : int = (p-1) * (q-1)
 
         while True:
+            e : int = randint(2, n-1)
             if gcd(e, phi_n) == 1:
                 break
-            e += 1
 
         d : int = BitVector(intVal=e).multiplicative_inverse(BitVector(intVal=phi_n)).int_val()
 
@@ -66,23 +67,15 @@ class RSA:
 
         return e, d
 
-    def pow(self, base : int, exp : BitVector) -> BitVector:
-        ret : int = 1
-        # x : int = base.int_val()
-        for i in range(len(exp)-1, -1, -1):
-            if exp[i] == 1:
-                ret = ret * base % self.n
-            base = base * base % self.n
-        
-        return BitVector(intVal=ret)
-
     def encrypt(self, plaintext : bytearray) -> bytearray:
         ciphertext : bytearray = bytearray()
         for c in plaintext:
-            e : BitVector = self.pow(c, self.e)
+            e : BitVector = BitVector(intVal = pow(c, self.e, self.n))
+
             if len(e) < self.key_length:
                 e.pad_from_left(self.key_length - len(e))
             ciphertext += bytearray.fromhex(e.get_bitvector_in_hex())
+
         return ciphertext
 
 
@@ -90,6 +83,7 @@ class RSA:
         plaintext : bytearray = bytearray()
         stride : int = self.key_length // 8
         for i in range(0, len(ciphertext), stride):
-            c : BitVector = self.pow(BitVector(rawbytes = ciphertext[i : i+stride]).int_val(), self.d)
-            plaintext.append(c.int_val())
+            x : BitVector = BitVector(rawbytes=ciphertext[i:i+stride]).int_val()
+            c : int = pow(x, self.d, self.n)
+            plaintext.append(c)
         return plaintext
