@@ -1,0 +1,1 @@
+g++ --std=c++14 -Iinclude -Llib -o bin/main.exe %1 -lGlaux -lGLU32 -lglui32 -lglut32 -lOPENGL32
