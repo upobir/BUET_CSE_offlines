@@ -1,9 +1,10 @@
 #include<stdio.h>
 #include<stdlib.h>
-#include<math.h>
 
 #include <windows.h>
 #include <glut.h>
+
+#include "vector.hpp"
 
 #define pi (2*acos(0.0))
 
