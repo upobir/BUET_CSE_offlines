@@ -66,6 +66,14 @@ Vector<T> operator*(T a, Vector<T> b) {
 }
 
 template<typename T>
+Vector<T>& operator*=(Vector<T> &a, T b) {
+    a.x *= b;
+    a.y *= b;
+    a.z *= b;
+    return a;
+}
+
+template<typename T>
 T dot(Vector<T> a, Vector<T> b) {
     return a.x * b.x + a.y * b.y + a.z * b.z;
 }

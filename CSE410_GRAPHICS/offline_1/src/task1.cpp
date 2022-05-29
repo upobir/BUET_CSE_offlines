@@ -8,7 +8,7 @@ const double PI = acos(-1);
 
 Vector<double> up, right, look, camera;
 const double move_delta = 10.0;
-const double angle_delta = PI/20.0;
+const double angle_delta = 5 * PI/180.0;
 
 const double B = 50, X_delta = 2;
 double X = 25;
@@ -115,25 +115,13 @@ void drawUnitCylinderOneFourth(){
         y[i] = sin(PI/2.0 * i/SLICE_COUNT);
     }
 
-    for(int j = 0; j<SLICE_COUNT; j++){
-        double z1 = j/(double)SLICE_COUNT;
-        double z2 = (j+1)/(double)SLICE_COUNT;
-
-        for(int i = 0; i<SLICE_COUNT; i++){
-            glBegin(GL_QUADS);{
-                glVertex3f(x[i], y[i], z1);
-                glVertex3f(x[i], y[i], z2);
-                glVertex3f(x[i+1], y[i+1], z2);
-                glVertex3f(x[i+1], y[i+1], z1);
-
-                glVertex3f(x[i], y[i], -z1);
-                glVertex3f(x[i], y[i], -z2);
-                glVertex3f(x[i+1], y[i+1], -z2);
-                glVertex3f(x[i+1], y[i+1], -z1);
-            }glEnd();
-        }
-
-        
+    for(int i = 0; i<SLICE_COUNT; i++){
+        glBegin(GL_QUADS);{
+            glVertex3f(x[i], y[i], 1);
+            glVertex3f(x[i], y[i], -1);
+            glVertex3f(x[i+1], y[i+1], -1);
+            glVertex3f(x[i+1], y[i+1], 1);
+        }glEnd();
     }
 }
 
