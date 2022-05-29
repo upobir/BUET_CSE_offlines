@@ -4,8 +4,11 @@
 #include "vector.hpp"
 #include <iostream>
 
+const double PI = acos(-1);
+
 Vector<double> up, right, look, camera;
 const double move_delta = 10.0;
+const double angle_delta = PI/20.0;
 
 void drawAxes()
 {
@@ -198,6 +201,36 @@ void drawTestCube(){
 
 void keyboardListener(unsigned char key, int x,int y){
     switch(key){
+        case '1':
+            look = rotate(up, look, +angle_delta);
+            right = rotate(up, right, +angle_delta);
+            break;
+
+        case '2':
+            look = rotate(up, look, -angle_delta);
+            right = rotate(up, right, -angle_delta);
+            break;
+
+        case '3':
+            look = rotate(right, look, +angle_delta);
+            up = rotate(right, up, +angle_delta);
+            break;
+
+        case '4':
+            look = rotate(right, look, -angle_delta);
+            up = rotate(right, up, -angle_delta);
+            break;
+
+        case '5':
+            up = rotate(look, up, +angle_delta);
+            right = rotate(look, right, +angle_delta);
+            break;
+
+        case '6':
+            up = rotate(look, up, -angle_delta);
+            right = rotate(look, right, -angle_delta);
+            break;
+
         default:
             break;
     }
@@ -206,11 +239,11 @@ void keyboardListener(unsigned char key, int x,int y){
 
 void specialKeyListener(int key, int x,int y){
     switch(key){
-        case GLUT_KEY_DOWN:        //down arrow key
+        case GLUT_KEY_DOWN:
             camera -= move_delta * look;
             break;
 
-        case GLUT_KEY_UP:        // up arrow key
+        case GLUT_KEY_UP:
             camera += move_delta * look;
             break;
 
@@ -241,7 +274,7 @@ void specialKeyListener(int key, int x,int y){
         default:
             break;
     }
-    std::cout<<camera<<look<<up<<std::endl;
+    // std::cout<<camera<<look<<up<<std::endl;
 }
 
 
