@@ -76,6 +76,14 @@ Vector<T> cross(Vector<T> a, Vector<T> b) {
 }
 
 template<typename T>
+Vector<T> rotate(Vector<T> r, Vector<T> x, double rad){
+    T C = cos(rad);
+    T S = sin(rad);
+
+    return (1-C) * dot(r, x) * r + C * x + S * cross(r, x);
+}
+
+template<typename T>
 std::ostream& operator<<(std::ostream& os, Vector<T> v) {
     os << "(" << v.x << ", " << v.y << ", " << v.z << ")";
     return os;
