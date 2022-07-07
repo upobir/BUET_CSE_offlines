@@ -4,6 +4,7 @@
 #include <fstream>
 
 #include "GraphicsProcessor.hpp"
+#include "bitmap_image.hpp"
 
 int main(int argc, char** argv){
     
@@ -22,13 +23,14 @@ int main(int argc, char** argv){
     std::ofstream stage2File("stage2.txt");
     std::ofstream stage3File("stage3.txt");
     std::ofstream zbufferFile("z_buffer.txt");
-    std::ofstream bmpFile("out.bmp");   /// TODO make buffer
+    bitmap_image bmp;
 
-    GraphicsProcessor processor(sceneFile, configFile, stage1File, stage2File, stage3File, zbufferFile, bmpFile);
+    GraphicsProcessor processor(sceneFile, configFile, stage1File, stage2File, stage3File, zbufferFile, bmp);
 
     
 
-    processor.process();
+    processor.processTransformations();
+    processor.processDrawing();
 
     sceneFile.close();
     configFile.close();
@@ -36,7 +38,7 @@ int main(int argc, char** argv){
     stage2File.close();
     stage3File.close();
     zbufferFile.close();
-    bmpFile.close();
+    bmp.save_image("out.bmp");
 
     return 0;
 }
