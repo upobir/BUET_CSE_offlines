@@ -108,6 +108,8 @@ Vector3<T> rotate(Vector3<T> a, Vector3<T> x, double rad){
     T C = cos(rad);
     T S = sin(rad);
 
+    a = a.getNormalized();
+
     return (1-C) * dot(a, x) * a + C * x + S * cross(a, x);
 }
 
