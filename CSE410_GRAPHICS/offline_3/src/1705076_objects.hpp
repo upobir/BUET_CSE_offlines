@@ -13,9 +13,10 @@ struct Ray {
 
     Ray(Vector3<double> _start, Vector3<double> _dir){
         start = _start;
-        dir = _dir;
+        dir = _dir.getNormalized();
     }
 };
+
 
 class Object {
 public:
@@ -46,6 +47,10 @@ public:
         is >> shine;
     }
 
+    virtual double intersect(Ray& ray, double* color, int level){
+        return -1.0;
+    }
+
 protected:
     Vector3<double> ref_point;
     double height, width, length;
@@ -53,6 +58,7 @@ protected:
     double coefs[4]; /// ambient, diffuse, specular, reflection
     int shine;
 };
+
 
 class Sphere : public Object {
 public:
@@ -110,6 +116,31 @@ public:
         // exit(0);
     }
 
+    double intersect(Ray& ray, double* seencolor, int level) override {
+        /// |s + dt - rf|^2 = rad*rad
+        /// (s-rf)^2 + t^2 d^2 + 2 * d.(s-rf) * t - rad*rad = 0
+
+        double a = dot(ray.dir, ray.dir);
+        double b = 2 * dot(ray.dir, ray.start - ref_point);
+        double c = dot(ray.start - ref_point, ray.start - ref_point) - radius * radius;
+        double descrim = b * b - 4 * a * c;
+        if(descrim < 0) 
+            return -1;
+
+        double t = (-b - sqrt(descrim)) / (2 * a);
+        if(t < 0)
+            t = (-b + sqrt(descrim)) / (2 * a);
+
+        if(t < 0)
+            return -1;
+
+        seencolor[0] = color[0];
+        seencolor[1] = color[1];
+        seencolor[2] = color[2];
+
+        return t;
+    }
+
 private:
     double radius;
 };
@@ -139,6 +170,30 @@ public:
         }glEnd();
     }
 
+    virtual double intersect(Ray& ray, double* seencolor, int level){
+        auto B_del = B - ref_point;
+        auto C_del = C - ref_point;
+        auto normal = cross(B_del, C_del);
+        
+        if(dot(ray.dir, normal) == 0)
+            return -1;
+
+        double t = dot(ref_point - ray.start, normal) / dot(ray.dir, normal);
+        auto point = ray.start + t * ray.dir;
+
+        auto c = dot(point - ref_point, cross(normal, B_del)) / dot(C_del , cross(normal, B_del));
+        auto b = dot(point - ref_point, cross(normal, C_del)) / dot(B_del , cross(normal, C_del));
+
+        if(b < 0 || c < 0 || b+c > 1) 
+            return -1;
+
+        seencolor[0] = color[0];
+        seencolor[1] = color[1];
+        seencolor[2] = color[2];
+
+        return t;
+    }
+
 private:
     Vector3<double> B, C;
 };
@@ -155,6 +210,10 @@ public:
     }
 
     void draw() override {
+    }
+
+    virtual double intersect(Ray& ray, double* color, int level){
+        return -1.0; //  TODO
     }
 
 private:
@@ -189,6 +248,26 @@ public:
                 }glEnd();
             }
         }
+    }
+
+    double intersect(Ray& ray, double* color, int level) override {
+        if(ray.dir.z == 0)
+            return -1.0;
+        double t = -ray.start.z / ray.dir.z;
+        Vector3<double> point = ray.start + t * ray.dir;
+
+        if (t <= 0 || point.x < ref_point.x || point.x > ref_point.x + length || point.y < ref_point.y || point.y > ref_point.y + width)
+            return -1;
+
+        int i = (point.x - ref_point.x) / tileWidth;
+        int j = (point.y - ref_point.y) / tileWidth;
+
+        if((i+j)%2 == 0)
+            color[0] = color[1] = color[2] = 0.0;
+        else
+            color[0] = color[1] = color[2] = 1.0;
+
+        return t;
     }
 
 private:

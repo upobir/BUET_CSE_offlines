@@ -75,6 +75,14 @@ public:
         right = rotate(look, right, -angle_delta);
     }
 
+    Vector3<double> getPosition(){return position;}
+
+    Vector3<double> getUp(){return up;}
+
+    Vector3<double> getRight(){return right;}
+
+    Vector3<double> getLook(){return look;}
+
 private:
     Vector3<double> up, right, look, position;
     double move_delta , angle_delta;

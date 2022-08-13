@@ -13,6 +13,7 @@
 #include <memory>
 #include <vector>
 #include <cassert>
+#include <limits>
 
 template <typename T>
 using SP = std::shared_ptr<T>;
@@ -27,10 +28,49 @@ int pixelDimension;
 
 int captureCount = 0;
 
+double windowHeight = 500, windowWidth = 500;
+double viewAngle = 80.0; 
+
 void capture(){
     bitmap_image image;
 
     image.setwidth_height(pixelDimension, pixelDimension, true);
+
+    double planeDist = (windowHeight/2) / tan((viewAngle * PI / 180.0) /2);
+    Vector3<double> topleft = camera.getPosition() 
+        + camera.getLook() * planeDist 
+        - camera.getRight() * (windowWidth/2)
+        + camera.getUp() * (windowHeight/2);
+
+    double du = windowWidth / pixelDimension;
+    double dv = windowHeight / pixelDimension;
+
+    topleft = topleft + camera.getRight() * (0.5 * du) - camera.getUp() * (0.5 * dv);
+    
+    for (int i = 0; i<pixelDimension; i++){
+        for(int j = 0; j<pixelDimension; j++){
+
+            Vector3<double> curPixel = topleft + camera.getRight() * (i * du) - camera.getUp() * (j * dv);
+            Ray ray(camera.getPosition(), curPixel - camera.getPosition());
+            double color[3] = {0.0, 0.0, 0.0}; 
+            
+            SP<Object> nearest;
+            double t, tMin = std::numeric_limits<double>::infinity();
+
+            for(auto object : objects){
+                double dummycolor[3];
+                t = object->intersect(ray, dummycolor, 0);
+                if(t > 0 && t <= tMin){
+                    tMin = t;
+                    nearest = object;
+                }
+            }
+
+            if(nearest) 
+                nearest->intersect(ray, color, recursionLevelMax);
+            image.set_pixel(i, j, 255*color[0], 255*color[1], 255*color[2]);
+        }
+    }
 
     captureCount++;
     std::string filename = std::string("output_") + std::to_string(captureCount) + std::string(".bmp");
@@ -39,6 +79,7 @@ void capture(){
 
     std::cout<<"Captured "<<filename<<std::endl;
 }
+
 
 void keyboardListener(unsigned char key, int x,int y){
     switch(key){
@@ -173,7 +214,7 @@ void init(){
     glLoadIdentity();
 
     //give PERSPECTIVE parameters
-    gluPerspective(80.0, 1.0, 1.0, 1000.0);
+    gluPerspective(viewAngle, 1.0, 1.0, 1000.0);
     //field of view in the Y (vertically)
     //aspect ratio that determines the field of view in the X direction (horizontally)
     //near distance
@@ -245,7 +286,7 @@ void loadData(){
 
 int main(int argc, char **argv){
     glutInit(&argc,argv);
-    glutInitWindowSize(500, 500);
+    glutInitWindowSize(windowWidth, windowHeight);
     glutInitWindowPosition(0, 0);
     glutInitDisplayMode(GLUT_DEPTH | GLUT_DOUBLE | GLUT_RGB);    //Depth, Double buffer, RGB color
     glutCreateWindow("RayTracer");
