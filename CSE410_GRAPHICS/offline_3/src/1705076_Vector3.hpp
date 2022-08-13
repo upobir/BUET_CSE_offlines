@@ -4,8 +4,7 @@
 #include <iomanip>
 #include <math.h>
 
-
-/// NOTE didn't use w
+const double PI = acos(-1);
 
 template<typename T>
 struct Vector3{

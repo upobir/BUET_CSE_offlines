@@ -1,98 +1,73 @@
 #include <windows.h>
 #include <glut.h>
 
-#include "1705076_Vector3.hpp"
+#include "1705076_vector3.hpp"
 #include "1705076_objects.hpp"
+#include "1705076_camera.hpp"
+#include "1705076_lights.hpp"
+
+#include "bitmap_image.hpp"
+
 #include <iostream>
 #include <fstream>
 #include <memory>
+#include <vector>
+#include <cassert>
 
 template <typename T>
 using SP = std::shared_ptr<T>;
 
 Camera camera;
+std::vector<SP<Object>> objects;
+std::vector<PointLight> pointLights;
+std::vector<SpotLight> spotLights;
 
-void drawAxes()
-{
-    glBegin(GL_LINES);{
-        glColor3f(1.0, 1.0, 1.0);
-        glVertex3f( 100,0,0);
-        glVertex3f(-100,0,0);
+int recursionLevelMax;
+int pixelDimension;
 
-        glVertex3f(0,-100,0);
-        glVertex3f(0, 100,0);
+int captureCount = 0;
 
-        glVertex3f(0,0, 100);
-        glVertex3f(0,0,-100);
-    }glEnd();
+void capture(){
+    bitmap_image image;
+
+    image.setwidth_height(pixelDimension, pixelDimension, true);
+
+    captureCount++;
+    std::string filename = std::string("output_") + std::to_string(captureCount) + std::string(".bmp");
+
+    image.save_image(filename);
+
+    std::cout<<"Captured "<<filename<<std::endl;
 }
-
-void drawTestCube(){
-    glBegin(GL_QUADS);{
-        glColor3f(1.0, 0.0, 0.0);
-
-        glVertex3f(50.0, 50.0, 50.0);
-        glVertex3f(-50.0, 50.0, 50.0);
-        glVertex3f(-50.0, -50.0, 50.0);
-        glVertex3f(50.0, -50.0, 50.0);
-
-        glVertex3f(50.0, 50.0, -50.0);
-        glVertex3f(50.0, -50.0, -50.0);
-        glVertex3f(-50.0, -50.0, -50.0);
-        glVertex3f(-50.0, 50.0, -50.0);
-
-        glColor3f(0.0, 1.0, 0.0);
-
-        glVertex3f(-50.0, 50.0, 50.0);
-        glVertex3f(-50.0, 50.0, -50.0);
-        glVertex3f(-50.0, -50.0, -50.0);
-        glVertex3f(-50.0, -50.0, 50.0);
-
-        glVertex3f(50.0, 50.0, -50.0);
-        glVertex3f(50.0, 50.0, 50.0);
-        glVertex3f(50.0, -50.0, 50.0);
-        glVertex3f(50.0, -50.0, -50.0);
-
-        glColor3f(0.0, 0.0, 1.0);
-
-        glVertex3f(50.0, 50.0, 50.0);
-        glVertex3f(50.0, 50.0, -50.0);
-        glVertex3f(-50.0, 50.0, -50.0);
-        glVertex3f(-50.0, 50.0, 50.0);
-
-        glVertex3f(50.0, -50.0, 50.0);
-        glVertex3f(-50.0, -50.0, 50.0);
-        glVertex3f(-50.0, -50.0, -50.0);
-        glVertex3f(50.0, -50.0, -50.0);
-        
-    }glEnd();
-}
-
 
 void keyboardListener(unsigned char key, int x,int y){
     switch(key){
         case '1':
-            camera.look_left();
+            camera.lookLeft();
             break;
 
         case '2':
-            camera.look_right();
+            camera.lookRight();
             break;
 
         case '3':
-            camera.look_up();
+            camera.lookUp();
             break;
 
         case '4':
-            camera.look_down();
+            camera.lookDown();
             break;
 
         case '5':
-            camera.tilt_clockwise();
+            camera.tiltClockwise();
             break;
 
         case '6':
-            camera.tilt_counterclockwise();
+            camera.tiltCounterclockwise();
+            break;
+
+        case ' ':
+            capture();
             break;
 
         default:
@@ -104,27 +79,27 @@ void keyboardListener(unsigned char key, int x,int y){
 void specialKeyListener(int key, int x,int y){
     switch(key){
         case GLUT_KEY_DOWN:
-            camera.move_back();
+            camera.moveBack();
             break;
 
         case GLUT_KEY_UP:
-            camera.move_front();
+            camera.moveFront();
             break;
 
         case GLUT_KEY_RIGHT:
-            camera.move_right();
+            camera.moveRight();
             break;
 
         case GLUT_KEY_LEFT:
-            camera.move_left();
+            camera.moveLeft();
             break;
 
         case GLUT_KEY_PAGE_UP:
-            camera.move_up();
+            camera.moveUp();
             break;
 
         case GLUT_KEY_PAGE_DOWN:
-            camera.move_down();
+            camera.moveDown();
             break;
 
         default:
@@ -161,7 +136,19 @@ void display(){
     //add objects
 
     //drawAxes();
-    drawTestCube();
+    //drawTestCube();
+
+    for(auto object : objects){
+        object->draw();
+    }
+
+    for(auto& light : pointLights){
+        light.draw();
+    }
+
+    for(auto& light : spotLights){
+        light.draw();
+    }
 
     glutSwapBuffers();
 }
@@ -170,6 +157,7 @@ void display(){
 void animate(){
     glutPostRedisplay();
 }
+
 
 void init(){
     //clear the screen
@@ -192,11 +180,68 @@ void init(){
     //far distance
 }
 
+
 void loadData(){
     std::ifstream sceneFile("scene.txt");
-    /// TODO
+
+    sceneFile >> recursionLevelMax;
+    sceneFile >> pixelDimension;
+
+    int objectCount;
+    sceneFile >> objectCount;
+
+    for(int i = 0; i<objectCount; i++){
+        std::string type;
+        sceneFile >> type;
+        SP<Object> tmp;
+
+        if(type == "sphere"){
+            tmp = std::make_shared<Sphere>(Vector3<double>{}, 0);
+            tmp->readFromStream(sceneFile);
+        }
+        else if(type == "triangle"){
+            tmp = std::make_shared<Triangle>(Vector3<double>{}, Vector3<double>{}, Vector3<double>{});
+            tmp->readFromStream(sceneFile);
+        }
+        else if(type == "general"){
+            tmp = std::make_shared<QuadSurface>();
+            tmp->readFromStream(sceneFile);
+        }
+        else{
+            assert(!"invalid input");
+        }
+
+        objects.push_back(tmp);
+    }
+
+    SP<Object> floor = std::make_shared<Floor>(1000, 20);
+    objects.push_back(floor);
+
+    int pointLightCount, spotLightCount;
+
+    sceneFile >> pointLightCount;
+    for(int i = 0; i<pointLightCount; i++){
+        PointLight light;
+        light.readFromStream(sceneFile);
+        pointLights.push_back(light);
+    }
+
+    sceneFile >> spotLightCount;
+    for(int i = 0; i<spotLightCount; i++){
+        SpotLight light;
+        light.readFromStream(sceneFile);
+        spotLights.push_back(light);
+    }
+    
     sceneFile.close();
+
+    std::cout<<"Scene read finished "<<std::endl;
+    std::cout<<"object count: "<<objects.size()<<std::endl;
+    std::cout<<"pointlight count: "<<pointLights.size()<<std::endl;
+    std::cout<<"spotlight count: "<<spotLights.size()<<std::endl;
+    std::cout<<std::endl;
 }
+
 
 int main(int argc, char **argv){
     glutInit(&argc,argv);
