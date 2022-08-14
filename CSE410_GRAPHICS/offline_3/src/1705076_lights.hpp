@@ -1,6 +1,7 @@
 #pragma once
-#include <windows.h>
-#include <glut.h>
+//#include <windows.h>
+#include <GL/glut.h>
+
 #include "1705076_vector3.hpp"
 
 #include <istream>
@@ -18,6 +19,14 @@ public:
         color[0] = r;
         color[1] = g;
         color[2] = b;
+    }
+
+    Vector3<double> getLightPos(){
+        return light_pos;
+    }
+
+    double getColor(int c){
+        return color[c];
     }
 
     virtual void readFromStream(std::istream& is) {
@@ -91,6 +100,14 @@ public:
         is >> light_dir;
         is >> cutoff_angle;
     };
+
+    Vector3<double> getLightDir(){
+        return light_dir;
+    }
+
+    double getCutoffRadians(){
+        return cutoff_angle * PI / 180.0;
+    }
 
 private:
     Vector3<double> light_dir;

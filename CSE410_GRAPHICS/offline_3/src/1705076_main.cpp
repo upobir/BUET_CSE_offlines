@@ -1,5 +1,5 @@
-#include <windows.h>
-#include <glut.h>
+//#include <windows.h>
+#include <GL/glut.h>
 
 #include "1705076_vector3.hpp"
 #include "1705076_objects.hpp"
@@ -15,11 +15,8 @@
 #include <cassert>
 #include <limits>
 
-template <typename T>
-using SP = std::shared_ptr<T>;
-
 Camera camera;
-std::vector<SP<Object>> objects;
+std::vector<std::shared_ptr<Object>> objects;
 std::vector<PointLight> pointLights;
 std::vector<SpotLight> spotLights;
 
@@ -52,22 +49,10 @@ void capture(){
 
             Vector3<double> curPixel = topleft + camera.getRight() * (i * du) - camera.getUp() * (j * dv);
             Ray ray(camera.getPosition(), curPixel - camera.getPosition());
-            double color[3] = {0.0, 0.0, 0.0}; 
+            double color[3];
+
+            Object::raytrace(ray, color, 1);
             
-            SP<Object> nearest;
-            double t, tMin = std::numeric_limits<double>::infinity();
-
-            for(auto object : objects){
-                double dummycolor[3];
-                t = object->intersect(ray, dummycolor, 0);
-                if(t > 0 && t <= tMin){
-                    tMin = t;
-                    nearest = object;
-                }
-            }
-
-            if(nearest) 
-                nearest->intersect(ray, color, recursionLevelMax);
             image.set_pixel(i, j, 255*color[0], 255*color[1], 255*color[2]);
         }
     }
@@ -234,7 +219,7 @@ void loadData(){
     for(int i = 0; i<objectCount; i++){
         std::string type;
         sceneFile >> type;
-        SP<Object> tmp;
+        std::shared_ptr<Object> tmp;
 
         if(type == "sphere"){
             tmp = std::make_shared<Sphere>(Vector3<double>{}, 0);
@@ -255,7 +240,7 @@ void loadData(){
         objects.push_back(tmp);
     }
 
-    SP<Object> floor = std::make_shared<Floor>(1000, 20);
+    std::shared_ptr<Object> floor = std::make_shared<Floor>(1000, 20);
     objects.push_back(floor);
 
     int pointLightCount, spotLightCount;

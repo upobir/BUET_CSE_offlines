@@ -1,12 +1,29 @@
 #pragma once
-#include <windows.h>
-#include <glut.h>
+//#include <windows.h>
+#include <GL/glut.h>
+
 #include "1705076_vector3.hpp"
+#include "1705076_lights.hpp"
 
 #include <istream>
 #include <iostream>
+#include <vector>
+#include <memory>
+#include <array>
+#include <limits>
 
 const int SLICE_COUNT = 100;
+
+extern std::vector<PointLight> pointLights;
+extern std::vector<SpotLight> spotLights;
+
+extern int recursionLevelMax;
+
+const int AMB = 0;
+const int DIFF = 1;
+const int SPEC = 2;
+const int REFL = 3;
+
 
 struct Ray {
     Vector3<double> start, dir;
@@ -15,12 +32,16 @@ struct Ray {
         start = _start;
         dir = _dir.getNormalized();
     }
+
+    Vector3<double> at(double t){
+        return start + dir * t;
+    }
 };
 
 
 class Object {
 public:
-    object() {}
+    Object() {}
 
     virtual void draw() {}
 
@@ -51,14 +72,26 @@ public:
         return -1.0;
     }
 
+    static void raytrace(Ray& ray, double* color, int level);
+
 protected:
     Vector3<double> ref_point;
     double height, width, length;
-    double color[3];
+    std::array<double, 3> color;
     double coefs[4]; /// ambient, diffuse, specular, reflection
     int shine;
+
+    void processColor(Ray& view, Vector3<double> point, double* seencolor);
+
+    virtual Vector3<double> getNormal(Vector3<double> point) = 0;
+
+    virtual std::array<double, 3> getColorAtPoint(Vector3<double> point) = 0;
+
+    bool isInShadow(Ray ray, Vector3<double> point);
+
 };
 
+extern std::vector<std::shared_ptr<Object>> objects;
 
 class Sphere : public Object {
 public:
@@ -117,9 +150,6 @@ public:
     }
 
     double intersect(Ray& ray, double* seencolor, int level) override {
-        /// |s + dt - rf|^2 = rad*rad
-        /// (s-rf)^2 + t^2 d^2 + 2 * d.(s-rf) * t - rad*rad = 0
-
         double a = dot(ray.dir, ray.dir);
         double b = 2 * dot(ray.dir, ray.start - ref_point);
         double c = dot(ray.start - ref_point, ray.start - ref_point) - radius * radius;
@@ -134,15 +164,46 @@ public:
         if(t < 0)
             return -1;
 
-        seencolor[0] = color[0];
-        seencolor[1] = color[1];
-        seencolor[2] = color[2];
+        if(level == 0)
+            return t;
+
+        auto point = ray.at(t);
+
+        processColor(ray, point, seencolor);
+
+        if(level >= recursionLevelMax)
+            return t;
+
+        auto normal = getNormal(point);
+        if(dot(normal, ray.dir) > 0)
+            normal = -normal;
+
+        auto reflected = 2.0*normal + ray.dir;
+
+        double reflcolor[3];
+
+        Ray newray (point + 0.05 * reflected, reflected);
+
+        Object::raytrace(newray, reflcolor, level+1);
+
+        for(int c = 0; c < 3; c++){
+            seencolor[c] += reflcolor[c] * coefs[REFL];
+        }
 
         return t;
     }
 
-private:
+protected:
     double radius;
+
+    Vector3<double> getNormal(Vector3<double> point) override {
+        return (point-ref_point).getNormalized();
+    }
+
+    std::array<double, 3> getColorAtPoint(Vector3<double> point) override {
+        return color;
+    }
+
 };
 
 
@@ -179,7 +240,7 @@ public:
             return -1;
 
         double t = dot(ref_point - ray.start, normal) / dot(ray.dir, normal);
-        auto point = ray.start + t * ray.dir;
+        auto point = ray.at(t);
 
         auto c = dot(point - ref_point, cross(normal, B_del)) / dot(C_del , cross(normal, B_del));
         auto b = dot(point - ref_point, cross(normal, C_del)) / dot(B_del , cross(normal, C_del));
@@ -187,15 +248,43 @@ public:
         if(b < 0 || c < 0 || b+c > 1) 
             return -1;
 
-        seencolor[0] = color[0];
-        seencolor[1] = color[1];
-        seencolor[2] = color[2];
+        if(level == 0)
+            return t;
+
+        processColor(ray, point, seencolor);
+
+        if(level >= recursionLevelMax)
+            return t;
+
+        normal = getNormal(point);
+        if(dot(normal, ray.dir) > 0)
+            normal = -normal;
+
+        auto reflected = 2.0*normal + ray.dir;
+
+        double reflcolor[3];
+
+        Ray newray (point + 0.05 * reflected, reflected);
+
+        Object::raytrace(newray, reflcolor, level+1);
+
+        for(int c = 0; c < 3; c++){
+            seencolor[c] += reflcolor[c] * coefs[REFL];
+        }
 
         return t;
     }
 
-private:
+protected:
     Vector3<double> B, C;
+
+    Vector3<double> getNormal(Vector3<double> point) override {
+        return cross(B-ref_point, C-ref_point).getNormalized();
+    }
+
+    std::array<double, 3> getColorAtPoint(Vector3<double> point) override {
+        return color;
+    }
 };
 
 
@@ -212,12 +301,99 @@ public:
     void draw() override {
     }
 
-    virtual double intersect(Ray& ray, double* color, int level){
-        return -1.0; //  TODO
+    virtual double intersect(Ray& ray, double* seencolor, int level){
+        double a = A*ray.dir.x*ray.dir.x + B*ray.dir.y*ray.dir.y + C*ray.dir.z*ray.dir.z
+            + D*ray.dir.x*ray.dir.y + E*ray.dir.y*ray.dir.z + F*ray.dir.x*ray.dir.z;
+
+        double b = A*2*ray.dir.x*ray.start.x + B*2*ray.dir.y*ray.start.y + C*2*ray.dir.z*ray.start.z
+            + D*ray.dir.x*ray.start.y + D*ray.start.x*ray.dir.y
+            + E*ray.dir.y*ray.start.z + E*ray.start.y*ray.dir.z
+            + F*ray.dir.x*ray.start.z + F*ray.start.x*ray.dir.z
+            + G*ray.dir.x + H*ray.dir.y + I*ray.dir.z;
+
+        double c = A*ray.start.x*ray.start.x + B*ray.start.y*ray.start.y + C*ray.start.z*ray.start.z
+            + D*ray.start.x*ray.start.y + E*ray.start.y*ray.start.z + F*ray.start.x*ray.start.z
+            + G*ray.start.x + H*ray.start.y + I*ray.start.z + J;
+
+        if(a == 0 && b == 0)
+            return -1;
+
+        double t;
+        Vector3<double> point;
+
+        if(a == 0){
+            t = -c / b;
+            point = ray.at(t);
+
+            if(t < 0 || isClipped(point))
+                return -1;
+        }
+        else{
+            double descrim = b * b - 4 * a * c;
+            if(descrim < 0) 
+                return -1;
+
+            t = (-b - sqrt(descrim)) / (2 * a);
+            point = ray.at(t);
+
+            if(t < 0 || isClipped(point)){
+                t = (-b + sqrt(descrim)) / (2 * a);
+                point = ray.at(t);
+
+                if(t < 0 || isClipped(point))
+                    return -1;
+            }
+        }
+
+        if(level == 0)
+            return t;
+
+        processColor(ray, point, seencolor);
+
+        if(level >= recursionLevelMax)
+            return t;
+
+        auto normal = getNormal(point);
+        if(dot(normal, ray.dir) > 0)
+            normal = -normal;
+
+        auto reflected = 2.0*normal + ray.dir;
+
+        double reflcolor[3];
+
+        Ray newray (point + 0.05 * reflected, reflected);
+
+        Object::raytrace(newray, reflcolor, level+1);
+
+        for(int c = 0; c < 3; c++){
+            seencolor[c] += reflcolor[c] * coefs[REFL];
+        }
+
+        return t;
     }
 
-private:
+protected:
     double A, B, C, D, E, F, G, H, I, J;
+
+    bool isClipped(Vector3<double> point){
+        if (length != 0 && (point.x < ref_point.x || ref_point.x + length < point.x))
+            return true;
+        if (width != 0 && (point.y < ref_point.y || ref_point.y + width < point.y))
+            return true;
+        if (height != 0 && (point.z < ref_point.z || ref_point.z + height < point.z))
+            return true;
+        return false;
+    }
+
+    Vector3<double> getNormal(Vector3<double> point) override {
+        return Vector3<double>(2*A*point.x + D*point.y + F*point.z + G,
+                       2*B*point.y + D*point.x + E*point.z + H,
+                       2*C*point.z + E*point.y + F*point.x + I);
+    }
+
+    std::array<double, 3> getColorAtPoint(Vector3<double> point) override {
+        return color;
+    }
 };
 
 
@@ -227,6 +403,11 @@ public:
         ref_point = Vector3<double>(-floorWidth/2, -floorWidth/2, 0);
         tileWidth = _tileWidth;
         length = width = floorWidth;
+        coefs[AMB] = 0.2;
+        coefs[DIFF] = 0.2;
+        coefs[SPEC] = 0.5;
+        coefs[REFL] = 0.2;
+        shine = 2;
     }
 
     void draw() override {
@@ -250,22 +431,38 @@ public:
         }
     }
 
-    double intersect(Ray& ray, double* color, int level) override {
+    double intersect(Ray& ray, double* seencolor, int level) override {
         if(ray.dir.z == 0)
             return -1.0;
         double t = -ray.start.z / ray.dir.z;
-        Vector3<double> point = ray.start + t * ray.dir;
+        auto point = ray.at(t);
 
         if (t <= 0 || point.x < ref_point.x || point.x > ref_point.x + length || point.y < ref_point.y || point.y > ref_point.y + width)
             return -1;
 
-        int i = (point.x - ref_point.x) / tileWidth;
-        int j = (point.y - ref_point.y) / tileWidth;
+        if(level == 0)
+            return t;
+        
+        processColor(ray, point, seencolor);
 
-        if((i+j)%2 == 0)
-            color[0] = color[1] = color[2] = 0.0;
-        else
-            color[0] = color[1] = color[2] = 1.0;
+        if(level >= recursionLevelMax)
+            return t;
+
+        auto normal = getNormal(point);
+        if(dot(normal, ray.dir) > 0)
+            normal = -normal;
+
+        auto reflected = 2.0*normal + ray.dir;
+
+        double reflcolor[3];
+
+        Ray newray (point + 0.05 * reflected, reflected);
+
+        Object::raytrace(newray, reflcolor, level+1);
+
+        for(int c = 0; c < 3; c++){
+            seencolor[c] += reflcolor[c] * coefs[REFL];
+        }
 
         return t;
     }
@@ -273,7 +470,113 @@ public:
 private:
     double tileWidth;
 
+    Vector3<double> getNormal(Vector3<double> point) override {
+        return Vector3<double>::Z();
+    }
+
+    std::array<double, 3> getColorAtPoint(Vector3<double> point) override {
+        int i = (point.x - ref_point.x) / tileWidth;
+        int j = (point.y - ref_point.y) / tileWidth;
+
+        if((i+j)%2 == 0)
+            return {0.0, 0.0, 0.0};
+        else
+            return {1.0, 1.0, 1.0};
+    }
 };
 
 
+bool Object::isInShadow(Ray ray, Vector3<double> point){
+    double t = (point - ray.start).length();
 
+    for(auto object : objects){
+        if(object.get() == this)
+            continue;
+        double dummy[3];
+        auto t_cand = object->intersect(ray, dummy, 0);
+        if(0 < t_cand && t_cand < t){
+            return true;
+        }
+    }
+
+    return false;
+}
+
+
+void Object::processColor(Ray& view, Vector3<double> point, double* seencolor) {
+
+    auto original = getColorAtPoint(point);
+
+    seencolor[0] = original[0];
+    seencolor[1] = original[1];
+    seencolor[2] = original[2];
+
+    auto normal = getNormal(point);
+    if(dot(normal, view.dir) > 0)
+        normal = -normal;
+
+    for(int c = 0; c<3; c++){
+        seencolor[c] *= coefs[AMB];
+    }
+
+    for(auto& light : pointLights){
+        Ray ray(light.getLightPos(), point - light.getLightPos());
+
+        if(isInShadow(ray, point)) 
+            continue;
+
+        auto reflected = normal*2.0 - ray.dir;
+
+        auto lambertValue = std::max(0.0, -dot(normal, ray.dir));
+        auto phongValue = std::max(0.0, dot(reflected, view.dir));
+
+        for(int c = 0; c < 3; c++){
+            seencolor[c] += light.getColor(c) * coefs[DIFF] * lambertValue * original[c];
+            seencolor[c] += light.getColor(c) * coefs[SPEC] * pow(phongValue, shine) * original[c];
+            if(seencolor[c] > 1) seencolor[c] = 1;
+        }
+    }
+
+    for(auto& light : spotLights){
+        Ray ray(light.getLightPos(), point - light.getLightPos());
+
+        if (acos(dot(ray.dir, light.getLightDir())/light.getLightDir().length()) > light.getCutoffRadians())
+            continue;
+
+        if(isInShadow(ray, point)) 
+            continue;
+
+        auto reflected = normal*2.0 - ray.dir;
+
+        auto lambertValue = std::max(0.0, -dot(normal, ray.dir));
+        auto phongValue = std::max(0.0, dot(reflected, view.dir));
+
+        for(int c = 0; c < 3; c++){
+            seencolor[c] += light.getColor(c) * coefs[DIFF] * lambertValue * original[c];
+            seencolor[c] += light.getColor(c) * coefs[SPEC] * pow(phongValue, shine) * original[c];
+            if(seencolor[c] > 1) seencolor[c] = 1;
+        }
+    }
+}
+
+
+void Object::raytrace(Ray& ray, double* color, int level) {
+    color[0] = 0.0;
+    color[1] = 0.0;
+    color[2] = 0.0;
+
+    std::shared_ptr<Object> nearest;
+    double t, tMin = std::numeric_limits<double>::infinity();
+
+    for(auto object : objects){
+        double dummycolor[3];
+        t = object->intersect(ray, dummycolor, 0);
+        if(t > 0 && t <= tMin){
+            tMin = t;
+            nearest = object;
+        }
+    }
+
+    if(nearest) 
+        nearest->intersect(ray, color, level);
+}

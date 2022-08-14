@@ -1,0 +1,1 @@
+g++ -g --std=c++14 -O2 -o bin/main src/1705076_main.cpp -lGL -lGLU -lglut

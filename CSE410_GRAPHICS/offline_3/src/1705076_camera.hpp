@@ -1,6 +1,7 @@
 #pragma once
-#include <windows.h>
-#include <glut.h>
+//#include <windows.h>
+#include <GL/glut.h>
+
 #include "1705076_vector3.hpp"
 
 class Camera{
