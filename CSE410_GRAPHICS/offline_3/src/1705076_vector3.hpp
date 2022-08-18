@@ -111,6 +111,11 @@ Vector3<T> rotate(Vector3<T> a, Vector3<T> x, double rad){
 }
 
 template<typename T>
+Vector3<T> reflect(Vector3<T> a, Vector3<T> n){ //a, n should be normalized
+    return 2 * dot(a, n) * n - a;
+}
+
+template<typename T>
 std::istream& operator>>(std::istream& is, Vector3<T> &v) {
     is >> v.x >> v.y >> v.z;
     return is;

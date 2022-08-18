@@ -1,5 +1,9 @@
 #pragma once
-//#include <windows.h>
+
+#if defined(_WIN32) || defined(_WIN64)
+    #include <windows.h>
+#endif
+
 #include <GL/glut.h>
 
 #include "1705076_vector3.hpp"
@@ -11,8 +15,10 @@
 #include <memory>
 #include <array>
 #include <limits>
+#include <cassert>
 
 const int SLICE_COUNT = 100;
+const double epsilon = 0.05;
 
 extern std::vector<PointLight> pointLights;
 extern std::vector<SpotLight> spotLights;
@@ -178,16 +184,17 @@ public:
         if(dot(normal, ray.dir) > 0)
             normal = -normal;
 
-        auto reflected = 2.0*normal + ray.dir;
+        auto reflected = reflect(-ray.dir, normal);
 
         double reflcolor[3];
 
-        Ray newray (point + 0.05 * reflected, reflected);
+        Ray newray (point + epsilon * reflected, reflected);
 
         Object::raytrace(newray, reflcolor, level+1);
 
         for(int c = 0; c < 3; c++){
             seencolor[c] += reflcolor[c] * coefs[REFL];
+            if(seencolor[c] > 1) seencolor[c] = 1;
         }
 
         return t;
@@ -260,16 +267,17 @@ public:
         if(dot(normal, ray.dir) > 0)
             normal = -normal;
 
-        auto reflected = 2.0*normal + ray.dir;
+        auto reflected = reflect(-ray.dir, normal);
 
         double reflcolor[3];
 
-        Ray newray (point + 0.05 * reflected, reflected);
+        Ray newray (point + epsilon * reflected, reflected);
 
         Object::raytrace(newray, reflcolor, level+1);
 
         for(int c = 0; c < 3; c++){
             seencolor[c] += reflcolor[c] * coefs[REFL];
+            if(seencolor[c] > 1) seencolor[c] = 1;
         }
 
         return t;
@@ -357,16 +365,17 @@ public:
         if(dot(normal, ray.dir) > 0)
             normal = -normal;
 
-        auto reflected = 2.0*normal + ray.dir;
+        auto reflected = reflect(-ray.dir, normal);
 
         double reflcolor[3];
 
-        Ray newray (point + 0.05 * reflected, reflected);
+        Ray newray (point + epsilon * reflected, reflected);
 
         Object::raytrace(newray, reflcolor, level+1);
 
         for(int c = 0; c < 3; c++){
             seencolor[c] += reflcolor[c] * coefs[REFL];
+            if(seencolor[c] > 1) seencolor[c] = 1;
         }
 
         return t;
@@ -388,7 +397,7 @@ protected:
     Vector3<double> getNormal(Vector3<double> point) override {
         return Vector3<double>(2*A*point.x + D*point.y + F*point.z + G,
                        2*B*point.y + D*point.x + E*point.z + H,
-                       2*C*point.z + E*point.y + F*point.x + I);
+                       2*C*point.z + E*point.y + F*point.x + I).getNormalized();
     }
 
     std::array<double, 3> getColorAtPoint(Vector3<double> point) override {
@@ -452,16 +461,17 @@ public:
         if(dot(normal, ray.dir) > 0)
             normal = -normal;
 
-        auto reflected = 2.0*normal + ray.dir;
+        auto reflected = reflect(-ray.dir, normal);
 
         double reflcolor[3];
 
-        Ray newray (point + 0.05 * reflected, reflected);
+        Ray newray (point + epsilon * reflected, reflected);
 
         Object::raytrace(newray, reflcolor, level+1);
 
         for(int c = 0; c < 3; c++){
             seencolor[c] += reflcolor[c] * coefs[REFL];
+            if(seencolor[c] > 1) seencolor[c] = 1;
         }
 
         return t;
@@ -522,13 +532,13 @@ void Object::processColor(Ray& view, Vector3<double> point, double* seencolor) {
     for(auto& light : pointLights){
         Ray ray(light.getLightPos(), point - light.getLightPos());
 
-        if(isInShadow(ray, point)) 
+        if(isInShadow(ray, point))
             continue;
 
-        auto reflected = normal*2.0 - ray.dir;
+        auto reflected = reflect(-ray.dir, normal);
 
-        auto lambertValue = std::max(0.0, -dot(normal, ray.dir));
-        auto phongValue = std::max(0.0, dot(reflected, view.dir));
+        auto lambertValue = std::max(0.0, dot(normal, -ray.dir));
+        auto phongValue = std::max(0.0, dot(reflected, -view.dir));
 
         for(int c = 0; c < 3; c++){
             seencolor[c] += light.getColor(c) * coefs[DIFF] * lambertValue * original[c];
@@ -546,10 +556,10 @@ void Object::processColor(Ray& view, Vector3<double> point, double* seencolor) {
         if(isInShadow(ray, point)) 
             continue;
 
-        auto reflected = normal*2.0 - ray.dir;
+        auto reflected = reflect(-ray.dir, normal);
 
-        auto lambertValue = std::max(0.0, -dot(normal, ray.dir));
-        auto phongValue = std::max(0.0, dot(reflected, view.dir));
+        auto lambertValue = std::max(0.0, dot(normal, -ray.dir));
+        auto phongValue = std::max(0.0, dot(reflected, -view.dir));
 
         for(int c = 0; c < 3; c++){
             seencolor[c] += light.getColor(c) * coefs[DIFF] * lambertValue * original[c];

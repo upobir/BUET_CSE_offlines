@@ -1,4 +1,7 @@
-//#include <windows.h>
+#if defined(_WIN32) || defined(_WIN64)
+    #include <windows.h>
+#endif
+
 #include <GL/glut.h>
 
 #include "1705076_vector3.hpp"
