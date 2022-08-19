@@ -18,12 +18,13 @@
 #include <cassert>
 
 const int SLICE_COUNT = 100;
-const double epsilon = 0.05;
+const double epsilon = 0.001;
 
 extern std::vector<PointLight> pointLights;
 extern std::vector<SpotLight> spotLights;
 
 extern int recursionLevelMax;
+extern bool debug;
 
 const int AMB = 0;
 const int DIFF = 1;
@@ -413,10 +414,10 @@ public:
         tileWidth = _tileWidth;
         length = width = floorWidth;
         coefs[AMB] = 0.2;
-        coefs[DIFF] = 0.2;
-        coefs[SPEC] = 0.5;
-        coefs[REFL] = 0.2;
-        shine = 2;
+        coefs[DIFF] = 0.3;
+        coefs[SPEC] = 0.3;
+        coefs[REFL] = 0.6;
+        shine = 5;
     }
 
     void draw() override {
@@ -500,11 +501,11 @@ bool Object::isInShadow(Ray ray, Vector3<double> point){
     double t = (point - ray.start).length();
 
     for(auto object : objects){
-        if(object.get() == this)
-            continue;
+        // if(object.get() == this)
+        //     continue;
         double dummy[3];
         auto t_cand = object->intersect(ray, dummy, 0);
-        if(0 < t_cand && t_cand < t){
+        if(0 < t_cand && t_cand < t-epsilon){
             return true;
         }
     }
@@ -589,4 +590,8 @@ void Object::raytrace(Ray& ray, double* color, int level) {
 
     if(nearest) 
         nearest->intersect(ray, color, level);
+
+    if(debug){
+        std::cout<<color[0]<< " "<<color[1]<<" "<<color[2]<<std::endl;
+    }
 }

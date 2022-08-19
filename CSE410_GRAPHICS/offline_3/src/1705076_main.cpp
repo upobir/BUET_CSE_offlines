@@ -31,6 +31,8 @@ int captureCount = 0;
 double windowHeight = 500, windowWidth = 500;
 double viewAngle = 80.0; 
 
+bool debug = false;
+
 void capture(){
     bitmap_image image;
 
@@ -55,8 +57,14 @@ void capture(){
             double color[3];
 
             Object::raytrace(ray, color, 1);
+
             
             image.set_pixel(i, j, 255*color[0], 255*color[1], 255*color[2]);
+
+            if(debug)
+                image.set_pixel(i, j, 0, 255, 0);
+
+            debug = false;
         }
     }
 
