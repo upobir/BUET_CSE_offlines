@@ -533,6 +533,9 @@ void Object::processColor(Ray& view, Vector3<double> point, double* seencolor) {
     for(auto& light : pointLights){
         Ray ray(light.getLightPos(), point - light.getLightPos());
 
+        // if(dot(ray.dir, normal) > 0)
+        //     continue;
+
         if(isInShadow(ray, point))
             continue;
 
@@ -550,6 +553,9 @@ void Object::processColor(Ray& view, Vector3<double> point, double* seencolor) {
 
     for(auto& light : spotLights){
         Ray ray(light.getLightPos(), point - light.getLightPos());
+
+        // if(dot(ray.dir, normal) > 0)
+        //     continue;
 
         if (acos(dot(ray.dir, light.getLightDir())/light.getLightDir().length()) > light.getCutoffRadians())
             continue;
