@@ -9,7 +9,7 @@ def random_invertible_symmatrix(n):
 
 
 def symdiagonalize(M):
-    eigen_values, eigen_vectors = np.linalg.eig(M)
+    eigen_values, eigen_vectors = np.linalg.eigh(M)
     return eigen_vectors, np.diag(eigen_values), eigen_vectors.conj().T
 
 if __name__ == "__main__":

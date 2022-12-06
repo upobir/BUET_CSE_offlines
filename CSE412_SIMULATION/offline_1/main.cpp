@@ -2,7 +2,7 @@
 #include <iostream>
 #include <iomanip>
 #include <random>
-#include <time.h>
+#include <queue>
 
 const int Q_LIMIT = 100;
 const int NUM_EVENTS = 2;
@@ -11,15 +11,19 @@ const float INF = 1.0e+30;
 class MM1Simulator {
 public:
     MM1Simulator(float _mean_interarrival, float _mean_service) 
-        : mean_interarrival(_mean_interarrival), mean_service(_mean_service), rng(time(0)){
+        : mean_interarrival(_mean_interarrival), mean_service(_mean_service), rng(std::random_device()()){
     }
 
     void simulate(int num_delays_required){
         initialize();
 
         while(num_custs_delayed < num_delays_required){
-            timing();
+            auto timing_result = timing();
+            sim_time = timing_result.first;
+            Event next_event_type = timing_result.second;
+
             update_time_avg_stats();
+
             switch(next_event_type){
                 case Event::ARRIVAL:
                     arrive();
@@ -64,40 +68,36 @@ private:
     enum class Event{NONE = 0, ARRIVAL = 1, DEPARTURE = 2};
 
     float mean_interarrival, mean_service;
-
     
-
     float sim_time;
     State server_status;
-    int num_in_q;
     float time_last_event;
     int num_custs_delayed;
     float total_of_delays;
     float area_num_in_q;
     float area_server_status;
-    float time_next_event[3];
-    float time_arrival[Q_LIMIT+1];
-    Event next_event_type;
+    float time_next_event[NUM_EVENTS+1];
+    std::queue<float> time_arrivals;
 
     std::mt19937 rng;
 
     void initialize(){
         sim_time = 0.0;
         server_status = State::IDLE;
-        num_in_q = 0;
         time_last_event = 0.0;
         num_custs_delayed = 0;
         total_of_delays = 0.0;
         area_num_in_q = 0.0;
         area_server_status = 0.0;
+        time_arrivals = std::queue<float>();
 
         time_next_event[int(Event::ARRIVAL)] = sim_time + std::exponential_distribution<float>(1.0/mean_interarrival)(rng);
         time_next_event[int(Event::DEPARTURE)] = INF;
     }
 
-    void timing(){
+    std::pair<float, Event> timing(){
         float min_time_next_event = INF/2;
-        next_event_type = Event::NONE;
+        Event next_event_type = Event::NONE;
 
         for(int i = 1; i <= NUM_EVENTS; i++){
             if(time_next_event[i] < min_time_next_event){
@@ -110,7 +110,7 @@ private:
             std::cerr<< "Event List empty at time "<<sim_time<<std::endl;
             exit(1);
         }
-        sim_time = min_time_next_event;
+        return {min_time_next_event, next_event_type};
     }
 
     void update_time_avg_stats(){
@@ -118,7 +118,7 @@ private:
         time_since_last_event = sim_time - time_last_event;
         time_last_event = sim_time;
 
-        area_num_in_q += num_in_q * time_since_last_event;
+        area_num_in_q += int(time_arrivals.size()) * time_since_last_event;
         area_server_status += int(server_status) * time_since_last_event;
     }
 
@@ -127,12 +127,11 @@ private:
         time_next_event[int(Event::ARRIVAL)] = sim_time + std::exponential_distribution<float>(1.0/mean_interarrival)(rng);
 
         if(server_status == State::BUSY){
-            ++num_in_q;
-            if(num_in_q > Q_LIMIT){
+            if(time_arrivals.size()+1 > Q_LIMIT){
                 std::cerr<<"Overflow of array time_arrival at time "<<sim_time<<std::endl;
                 exit(2);
             }
-            time_arrival[num_in_q] = sim_time;
+            time_arrivals.push(sim_time);
         }
         else{
             delay = 0.0;
@@ -145,19 +144,16 @@ private:
 
     void depart(){
         float delay;
-        if(num_in_q == 0){
+        if(time_arrivals.empty()){
             server_status = State::IDLE;
             time_next_event[int(Event::DEPARTURE)] = INF;
         }
         else{
-            --num_in_q;
-            delay = sim_time - time_arrival[1];
+            delay = sim_time - time_arrivals.front();
             total_of_delays += delay;
             ++num_custs_delayed;
             time_next_event[int(Event::DEPARTURE)] = sim_time + std::exponential_distribution<float>(1.0/mean_service)(rng);
-            for(int i = 1; i<=num_in_q; i++){
-                time_arrival[i] = time_arrival[i+1];
-            }
+            time_arrivals.pop();
         }
     }
 };
@@ -184,7 +180,7 @@ int main(int argc, char** argv){
     outfile << "Average delay in queue" << std::fixed << std::setw(11) << std::setprecision(3) << simulator.getAvgDelay() << " minutes" << std::endl << std::endl;
     outfile << "Average number in queue" << std::fixed << std::setw(10) << std::setprecision(3) << simulator.getAvgNumInQ()  << std::endl << std::endl;
     outfile << "Server utilization" << std::fixed << std::setw(15) << std::setprecision(3) << simulator.getServerUtil() << std::endl << std::endl;
-    outfile << "Time simulation ended" << std::fixed << std::setw(12) << std::setprecision(3) << simulator.getSimTime() << " minutes" << std::endl;
+    outfile << "Time simulation ended" << std::fixed << std::setw(12) << std::setprecision(3) << simulator.getSimTime() << " minutes" << std::endl << std::endl;
 
     outfile << std::endl << std::endl;
     outfile << "Expected Average delay in queue" << std::fixed << std::setw(11) << std::setprecision(3) << simulator.getExpectedAvgDelay() << " minutes" << std::endl << std::endl;
