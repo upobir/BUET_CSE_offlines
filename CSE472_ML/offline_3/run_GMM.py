@@ -1,7 +1,3 @@
-"""
-main code that you will run
-"""
-
 import numpy as np
 from gaussian_mixture_model import GaussianMixture
 import matplotlib.pyplot as plt
@@ -13,7 +9,7 @@ if __name__ == '__main__':
         X = X.reshape((-1, 1))
 
     values = []
-    for k in range(2, 11):
+    for k in range(1, 11):
         params = {"n_component" : k}
         clusterer = GaussianMixture(params)
         clusterer.fit(X)
@@ -24,9 +20,7 @@ if __name__ == '__main__':
     plt.plot([k for k, _ in values], [log_likelihood for _, log_likelihood in values])
     plt.xlabel("k")
     plt.ylabel("log likelihood")
+    plt.xticks([k for k, _ in values])
     plt.show()
-
-    k = max(values, key=lambda x: x[1])[0]
-    print("number of components:", k)
 
 
