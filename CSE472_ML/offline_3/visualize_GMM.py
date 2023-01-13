@@ -12,14 +12,18 @@ if __name__ == '__main__':
     X = np.loadtxt(sys.argv[1])
     k = int(sys.argv[2])
 
+    if len(X.shape) < 2:
+        print("1D data cannot visualize")
+        exit(1)
+
+
     if X.shape[1] != 2:
-        print("Non 2D data")
+        print("Non 2D data, doing PCA")
         pca = PCA(n_components=2)
         pca.fit(X)
         X = pca.transform(X)
-        print("Finished PCA")
 
-    params = {"n_component" : k}
+    params = {"n_component" : k, 'trials': 4}
     clusterer = GaussianMixture(params)
     clusterer.fit(X, True)
 
@@ -28,7 +32,7 @@ if __name__ == '__main__':
 
     xmesh, ymesh = np.meshgrid(x, y)
 
-    c = ['b', 'g', 'r', 'c', 'm', 'y', 'k', 'w', 'p', 'o']
+    c = ['b', 'g', 'r', 'c', 'm', 'y', 'k', 'tab:gray', 'tab:brown', 'tab:purple']
         
     for i, (means, covs, priors) in enumerate(clusterer.history):
         plt.clf()
@@ -45,6 +49,6 @@ if __name__ == '__main__':
             Z = Z.reshape(xmesh.shape)
             plt.contour(xmesh, ymesh, Z, 4, colors = c[j])
 
-        plt.pause(0.08)
+        plt.pause(0.1)
 
     plt.show()

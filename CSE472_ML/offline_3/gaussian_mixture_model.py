@@ -16,6 +16,8 @@ class GaussianMixture:
         self.k = params.get('n_component')
         self.max_iter = params.get('max_iter', 100)
         self.eps = params.get('eps', 0.001)
+        self.trials = params.get('trials', 1)
+        
         self.means = None
         self.covs = None
         self.priors = None
@@ -36,59 +38,69 @@ class GaussianMixture:
         n = X.shape[0]
         m = X.shape[1]
 
-        self.means = np.random.rand(self.k, m) + np.mean(X, axis=0) # (np.max(X, axis=0) - np.min(X, axis=0)) + np.min(X, axis=0)
-        self.covs = np.zeros((self.k, m, m))
-        for j in range(self.k):
-            self.covs[j] = np.identity(m)
-        self.priors = np.random.rand(self.k)
-        self.priors /= np.sum(self.priors)
-
-        # y = np.random.randint(self.k, size=n)
-
-        # self.means = np.zeros((self.k, m))
-        # self.covs = np.zeros((self.k, m, m))
-        # self.priors = np.zeros((self.k,))
-
-        # for j in range(self.k):
-        #     X_j = X[y == j]
-        #     self.means[j] = np.mean(X_j, axis=0)
-        #     self.covs[j] = np.cov(X_j.T)
-        #     self.priors[j] = X_j.shape[0] / n
+        
+        self.history = None
+        best_likelihood = None
+        best_means = None
+        best_covs = None
+        best_priors = None
 
 
-        if with_history:
-            self.history = [[self.means.copy(), self.covs.copy(), self.priors.copy()]]
-
-        last_log_likelihood = None
-
-        for iter in range(self.max_iter):
-            # E step
-            responsibilities = self.predict_proba(X)
-
-            responsibilities += 1e-6
-            responsibilities / np.sum(responsibilities, axis=1).reshape((-1, 1))
-
-            # M step
-            sizes = np.sum(responsibilities, axis=0)
-
-            self.priors = sizes / n
-
-            self.means = (responsibilities.T @ X) / sizes.reshape((-1, 1))
-
+        for trial in range(self.trials):
+            self.means = np.random.rand(self.k, m) + np.mean(X, axis=0) # (np.max(X, axis=0) - np.min(X, axis=0)) + np.min(X, axis=0)
+            self.covs = np.zeros((self.k, m, m))
             for j in range(self.k):
-                self.covs[j] = (responsibilities[:, j] * (X - self.means[j]).T) @ (X - self.means[j])
-            self.covs /= sizes.reshape((-1, 1, 1))
+                self.covs[j] = np.identity(m)
+            self.priors = np.random.rand(self.k)
+            self.priors /= np.sum(self.priors)        
+
+            last_log_likelihood = None
 
             if with_history:
-                self.history.append([self.means.copy(), self.covs.copy(), self.priors.copy()])
+                history = [[self.means.copy(), self.covs.copy(), self.priors.copy()]]
 
-            # log likelihood
-            log_likelihood = self.score(X)
+            for iter in range(self.max_iter):
+                # E step
+                responsibilities = self.predict_proba(X)
 
-            if last_log_likelihood is not None and abs(log_likelihood - last_log_likelihood) < self.eps:
-                break
+                responsibilities += 1e-6
+                responsibilities / np.sum(responsibilities, axis=1).reshape((-1, 1))
 
-            last_log_likelihood = log_likelihood
+                # M step
+                sizes = np.sum(responsibilities, axis=0)
+
+                self.priors = sizes / n
+
+                self.means = (responsibilities.T @ X) / sizes.reshape((-1, 1))
+
+                for j in range(self.k):
+                    self.covs[j] = (responsibilities[:, j] * (X - self.means[j]).T) @ (X - self.means[j])
+                self.covs /= sizes.reshape((-1, 1, 1))
+
+                if with_history:
+                    history.append([self.means.copy(), self.covs.copy(), self.priors.copy()])
+
+                # log likelihood
+                log_likelihood = self.score(X)
+
+                if last_log_likelihood is not None and abs(log_likelihood - last_log_likelihood) < self.eps:
+                    break
+
+                last_log_likelihood = log_likelihood
+
+            if best_likelihood is None or log_likelihood > best_likelihood:
+                best_means = self.means.copy()
+                best_covs = self.covs.copy()
+                best_priors = self.priors.copy()
+
+                if with_history:
+                    self.history = history.copy()
+
+                best_likelihood = log_likelihood
+
+        self.means = best_means.copy()
+        self.covs = best_covs.copy()
+        self.priors = best_priors.copy()
 
         return self
 

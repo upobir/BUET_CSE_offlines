@@ -14,12 +14,27 @@ if __name__ == '__main__':
 
     values = []
     for k in range(1, 11):
-        params = {"n_component" : k}
+        params = {"n_component" : k, 'trials': 4}
         clusterer = GaussianMixture(params)
         clusterer.fit(X)
         log_likelihood = clusterer.score(X)
         values.append((k, log_likelihood))
-        print(k, '->', log_likelihood)
+        print(k, ' clusters, log likelihood = ', log_likelihood)
+
+    
+    for i in range(len(values)):
+        v = values[i]
+        converged = True
+        for j in range(i+1, len(values)):
+            if abs((v[1] - values[j][1]) / v[1]) > 0.01:
+                converged = False
+                break
+        if converged:
+            k_star = v[0]
+            break
+
+    print()
+    print("expected k* = ", k_star)
 
     plt.plot([k for k, _ in values], [log_likelihood for _, log_likelihood in values])
     plt.xlabel("k")
@@ -27,4 +42,4 @@ if __name__ == '__main__':
     plt.xticks([k for k, _ in values])
     plt.show()
 
-
+    
