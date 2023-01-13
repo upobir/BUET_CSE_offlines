@@ -49,6 +49,6 @@ if __name__ == '__main__':
             Z = Z.reshape(xmesh.shape)
             plt.contour(xmesh, ymesh, Z, 4, colors = c[j])
 
-        plt.pause(0.1)
+        plt.pause(10/len(clusterer.history))
 
     plt.show()
