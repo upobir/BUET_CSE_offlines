@@ -4,6 +4,10 @@ import matplotlib.pyplot as plt
 import sys
 
 if __name__ == '__main__':
+    if len(sys.argv) != 2:
+        print("Usage: python run_GMM.py <data_file>")
+        sys.exit(1)
+
     X = np.loadtxt(sys.argv[1])
     if len(X.shape) == 1:
         X = X.reshape((-1, 1))

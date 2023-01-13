@@ -11,7 +11,6 @@ import numpy as np
 # μk = 1/Nk * sum(P(y=k|X) * X)
 # Σk = 1/Nk * sum(P(y=k|X) * (X-μk) * (X-μk)^T)
 
-
 class GaussianMixture:
     def __init__(self, params):
         self.k = params.get('n_component')
@@ -37,7 +36,7 @@ class GaussianMixture:
         n = X.shape[0]
         m = X.shape[1]
 
-        self.means = np.random.rand(self.k, m)
+        self.means = np.random.rand(self.k, m) + np.mean(X, axis=0) # (np.max(X, axis=0) - np.min(X, axis=0)) + np.min(X, axis=0)
         self.covs = np.zeros((self.k, m, m))
         for j in range(self.k):
             self.covs[j] = np.identity(m)
@@ -56,6 +55,7 @@ class GaussianMixture:
         #     self.covs[j] = np.cov(X_j.T)
         #     self.priors[j] = X_j.shape[0] / n
 
+
         if with_history:
             self.history = [[self.means.copy(), self.covs.copy(), self.priors.copy()]]
 
@@ -65,7 +65,7 @@ class GaussianMixture:
             # E step
             responsibilities = self.predict_proba(X)
 
-            responsibilities += 1e-5
+            responsibilities += 1e-6
             responsibilities / np.sum(responsibilities, axis=1).reshape((-1, 1))
 
             # M step
@@ -82,9 +82,7 @@ class GaussianMixture:
             if with_history:
                 self.history.append([self.means.copy(), self.covs.copy(), self.priors.copy()])
 
-
             # log likelihood
-
             log_likelihood = self.score(X)
 
             if last_log_likelihood is not None and abs(log_likelihood - last_log_likelihood) < self.eps:

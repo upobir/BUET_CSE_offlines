@@ -5,6 +5,10 @@ import sys
 from sklearn.decomposition import PCA
 
 if __name__ == '__main__':
+    if len(sys.argv) != 3:
+        print("Usage: python visualize_GMM.py <data_file> <no_of_clusters>")
+        sys.exit(1)
+
     X = np.loadtxt(sys.argv[1])
     k = int(sys.argv[2])
 
@@ -41,6 +45,6 @@ if __name__ == '__main__':
             Z = Z.reshape(xmesh.shape)
             plt.contour(xmesh, ymesh, Z, 4, colors = c[j])
 
-        plt.pause(1)
+        plt.pause(0.08)
 
     plt.show()
