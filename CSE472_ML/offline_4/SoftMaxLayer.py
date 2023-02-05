@@ -6,15 +6,20 @@ class SoftMaxLayer:
 
     def forward(self, inputs):
         assert len(inputs.shape) == 2
+        
+        # limit value to 100 
+        # FIXME: this is a hack
+        inputs[inputs > 100] = 100
 
-        self.inputs = inputs
         exp_inputs = np.exp(inputs)
-        exp_inputs[exp_inputs == 0] = 1
+        sum = np.sum(exp_inputs, axis=1, keepdims=True)
+        sum[sum == 0] = 1
 
-        self.outputs = exp_inputs / np.sum(exp_inputs, axis=1, keepdims=True)
-        # print("output")
-        # print(self.outputs)
-        # print("-" * 50)
+        self.outputs = exp_inputs / sum
+
+        self.outputs += 1e-6
+        self.outputs /= np.sum(self.outputs, axis=1, keepdims=True)
+
         return self.outputs
 
 

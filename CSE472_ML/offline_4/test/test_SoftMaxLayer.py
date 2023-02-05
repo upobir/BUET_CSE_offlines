@@ -26,14 +26,14 @@ class TestSoftMaxLayer(unittest.TestCase):
             [math.exp(2)/s1, math.exp(1)/s1, math.exp(0)/s1, math.exp(-2)/s1],
             [math.exp(0.5)/s2, math.exp(3)/s2, math.exp(-1)/s2, math.exp(-1)/s2],
         ])
+        self.outputs += 1e-6
+        self.outputs /= np.sum(self.outputs, axis=1, keepdims=True)
+
         self.actual_outputs = np.array([
             [1, 0, 0, 0],
             [0, 0, 1, 0],
         ])
-        self.input_grads = np.array([
-            [math.exp(2)/s1 - 1, math.exp(1)/s1, math.exp(0)/s1, math.exp(-2)/s1],
-            [math.exp(0.5)/s2, math.exp(3)/s2, math.exp(-1)/s2 - 1, math.exp(-1)/s2],
-        ])
+        self.input_grads = self.outputs - self.actual_outputs
 
 
     def test_forward(self):

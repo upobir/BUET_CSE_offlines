@@ -9,7 +9,7 @@ class DenseLayer:
 
         if in_node_count is not None:
             self.in_node_count = in_node_count
-            self.weights = np.random.randn(self.out_node_count, self.in_node_count)
+            self.weights = np.random.randn(self.out_node_count, self.in_node_count) / np.sqrt(self.in_node_count)
             self.biases = np.random.randn(self.out_node_count)
 
     def forward(self, inputs):
@@ -17,7 +17,7 @@ class DenseLayer:
 
         if self.in_node_count is None:
             self.in_node_count = inputs.shape[1]
-            self.weights = np.random.randn(self.out_node_count, self.in_node_count)
+            self.weights = np.random.randn(self.out_node_count, self.in_node_count) / np.sqrt(self.in_node_count)
             self.biases = np.random.randn(self.out_node_count)
 
         self.inputs = inputs

@@ -26,7 +26,7 @@ class ConvolutionLayer(object):
             self.biases = np.random.randn(c)
 
         self.inputs = inputs
-        inputs = inputs.reshape(b, h, w, d, 1)
+        inputs = inputs.reshape(b, h, w, 1, d)
         oh, ow = ((h + 2 * p - kh) // sh + 1, (w + 2 * p - kw) // sw + 1)
         outputs = np.full((b, oh, ow, c), self.biases)
 
@@ -35,6 +35,7 @@ class ConvolutionLayer(object):
 
         for i in range(0,kh):
             for j in range(0, kw):
+
                 start_i = -self.pad + i
                 end_i = start_i + max_h
                 actual_start_i = start_i % sh if start_i < 0 else start_i
@@ -48,12 +49,11 @@ class ConvolutionLayer(object):
                 input_slice = inputs[:, actual_start_i:actual_end_i:sh, actual_start_j:actual_end_j:sw, :, :]
                 kernel = self.filters[i, j, :, :]
 
-                x =  input_slice * kernel
-                x = x.sum(axis = 3)
+                x =  input_slice @ kernel
 
                 effected_outputs = outputs[:, (actual_start_i-start_i) // sh: (actual_end_i-start_i) // sh, (actual_start_j-start_j) // sw: (actual_end_j-start_j) // sw, :]
-
-                effected_outputs += x
+    
+                effected_outputs += x.reshape(effected_outputs.shape)
 
         return outputs
 
@@ -71,7 +71,7 @@ class ConvolutionLayer(object):
         ph = kh - 1 - p
         pw = kw - 1 - p
 
-        output_grads = output_grads.reshape(b, h, w, 1, c)
+        output_grads = output_grads.reshape(b, h, w, c, 1)
         oh, ow = (ih + kh - 1, iw + kw - 1) # shape of unpadded-padded dilated output_grads
         input_grads = np.zeros((b, ih, iw, d)) # (b, ih, iw, d)
 
@@ -97,8 +97,7 @@ class ConvolutionLayer(object):
 
                 kernel = self.filters[kh - i - 1, kw - j - 1, :, :]
                 output_grads_slice = output_grads[:, undilated_start_i:undilated_end_i, undilated_start_j:undilated_end_j, :, :]
-                x = output_grads_slice * kernel
-                x = x.sum(axis = 4)
+                x = kernel @ output_grads_slice
 
                 effected_start_i = (actual_start_i-start_i) + (-actual_start_i) % sh
                 effected_end_i = effected_start_i + (undilated_end_i - undilated_start_i) * sh
@@ -106,7 +105,7 @@ class ConvolutionLayer(object):
                 effected_end_j = effected_start_j + (undilated_end_j - undilated_start_j) * sw
 
                 effected_input_grads = input_grads[:, effected_start_i : effected_end_i : sh, effected_start_j : effected_end_j : sw, :]
-                effected_input_grads += x
+                effected_input_grads += x.reshape(effected_input_grads.shape)
 
  
         self.biases -= output_grads.sum(axis = (0, 1, 2)).reshape((c,)) * learning_rate / b
