@@ -36,4 +36,7 @@ class MaxPoolingLayer:
                 mask = (input_slice == self.outputs)
                 input_grads[:, i:self.max_w+i:self.stride[0], j:self.max_h+j:self.stride[1], :] += mask * output_grads
 
+        self.inputs = None
+        self.outputs = None
+        
         return input_grads

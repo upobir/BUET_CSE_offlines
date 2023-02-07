@@ -24,14 +24,6 @@ class DenseLayer:
         outputs = self.weights @ inputs.reshape(-1, self.in_node_count, 1)
         outputs = outputs.reshape(-1, self.out_node_count) + self.biases
 
-        # print('weight')
-        # print(self.weights)
-        # print('bias')
-        # print(self.biases)
-        # print('output')
-        # print(outputs)
-        # print('-' * 50)
-
         return outputs
 
     def backward(self, output_grads, learning_rate):
@@ -44,11 +36,7 @@ class DenseLayer:
 
         bias_grads = output_grads.sum(axis=0)
         self.biases -= learning_rate * bias_grads / self.inputs.shape[0]
-
-        # print('weight_grads')
-        # print(weight_grads)
-        # print('bias_grads')
-        # print(bias_grads)
-        # print('-' * 50)
+        
+        self.inputs = None
 
         return input_grads

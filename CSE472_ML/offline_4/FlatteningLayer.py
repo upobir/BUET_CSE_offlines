@@ -11,4 +11,5 @@ class FlatteningLayer:
 
     def backward(self, output_grads, learning_rate):
         input_grads = output_grads.reshape(self.input_shape)
+        self.input_shape = None
         return input_grads

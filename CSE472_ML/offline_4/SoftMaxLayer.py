@@ -7,9 +7,8 @@ class SoftMaxLayer:
     def forward(self, inputs):
         assert len(inputs.shape) == 2
         
-        # limit value to 100 
-        # FIXME: this is a hack
-        inputs[inputs > 100] = 100
+        # subtract max from each row
+        inputs -= np.max(inputs, axis=1, keepdims=True)
 
         exp_inputs = np.exp(inputs)
         sum = np.sum(exp_inputs, axis=1, keepdims=True)
@@ -26,11 +25,9 @@ class SoftMaxLayer:
     def backward_from_output(self, outputs, learning_rate):
         assert self.outputs.shape == outputs.shape
 
-        # print(self.outputs)
-        # print(outputs)
 
         input_grads = self.outputs - outputs
-        # print("input_grads")
-        # print(input_grads)
-        # print("-" * 50)
+
+        self.outputs = None
+        
         return input_grads

@@ -161,4 +161,6 @@ class ConvolutionLayer(object):
 
                 self.filters[i, j, :, :] -= (inputs_slice * output_grads_slice).sum(axis = (0, 1, 2)) * learning_rate / b
 
+        self.inputs = None
+
         return input_grads
